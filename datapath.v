@@ -2,10 +2,10 @@ module datapath(
 	input clk,
 	input resetn,
 	input char, // char need to give several bits
-	input ld, // enter
+	input load, // enter
 	input compare, part, p2score, p1score, timecount, 
 	input [4:0] wordlength,
-	output reg [31:0] word, // The length of word should smaller or equal to 6;
+	output reg [31:0] word, // The length of word shouload smaller or equal to 6;
 	output reg match, count, dash,
 	output reg draw, // underscore
 	wire [6:0] timecounter,
@@ -23,30 +23,27 @@ module datapath(
 		if (resetn) begin
 			char <= 0; // the input we will put, it's a single character, it's 5 bits
 			dash <= 1'b0; // dash is the underscore below the every chars
-			i <= 0;
 		end
-		else if (ld == 1) begin
-			word[i:i+4] <= char;
-			drawdash = 1'b1;
-			i = i + 5;
-			/*word <= ld ? char : word;
-			dash <= ld && word ? 1'b1 : 1'b0;
-			wordlength <= wordlength + 1;
+		else if (load == 1) begin
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(load), .q(address));
+			dash <= 1'b1;
+			/*
 			remain <= wordlength;*/
 			end
 		end
 		
-	assign wordlength = i/5;
 	
-	
-	/*always @ (posedge load, posedge resetn)
+	reg [4:0] address;	// This is also can be treated as the length of the words
+						// since we write the chars to memory start from 1
+	always @ (posedge load, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
-				wordlength <= 0;
+				address <= 5'd0;
 			else begin
-				wordlength <= wordlength + 1;
-		end*/
-		
+				address <= address + 1;
+				
+		end
+	
 		
 	// load graph
 	always @(posedge clk) begin
@@ -69,14 +66,14 @@ module datapath(
 	
 	
 	
-	always@(posedge clk, negedge resetn) begin
+	/*always@(posedge clk, negedge resetn) begin
 		if (resetn)
 			wordlength <= 0;
-		else if (ld) begin
+		else if (load) begin
 			wordlength <= wordlength + 1;
 			remain <= wordlength;
 		end
-	end
+	end*/
 	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
