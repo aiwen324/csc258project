@@ -1,11 +1,20 @@
 module control(
 	input clk,
 	input resetn,
-	input load, try, endinput, start, timeout, 
-	input match, count // feedback from datapath
-	output reg ld, timecount, compare, 
-	output reg [4:0] wordcount,
-	output reg[3:0] part, p2score, p1score
+	input load, 
+	input try, 
+	input endinput, 
+	input start, 
+	input timeout, 
+	input match, 
+	input count, // feedback from datapath
+	output reg ld, 
+	output reg timecount, 
+	output reg compare, 
+	output reg [4:0] address,
+	output reg [3:0] part, 
+	output reg [3:0] p2score, 
+	output reg [3:0] p1score
 	);
 	
 	reg [4:0] remain;
@@ -117,10 +126,21 @@ module control(
 		end
 	end*/
 	
+	always @ (posedge ld, posedge resetn)
+		begin
+			if (resetn == 1'b1) begin
+				address <= 5'd0;
+			end
+			else begin
+				address <= address + 1;
+				remain <= address;
+			end
+		end
+	
 	always@(posedge clk) begin
 		if (resetn) begin
 			remain <= 0;
-			cont<= 1'b0;
+			cont <= 1'b0;
 			p2score <= 0;
 		end
 		else begin
@@ -165,6 +185,7 @@ module control(
 	always@(posedge clk) begin
 		if (resetn) begin
 			p1score <= 0;
+		end
 		else if (timeout == 1'b1) begin
 				p1score <= p1score + 1;			
 		end
