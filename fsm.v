@@ -10,7 +10,7 @@ module control(
 	
 	reg [4:0] remain;
 	reg [3:0] current_state, next_state;
-	reg continue, complete;
+	reg cont, complete;
 
 	localparam S_LOAD_C = 4'b0000, // load
 		  S_WAIT_C = 4'b0001,   // end, inside counter
@@ -46,8 +46,8 @@ module control(
 				else begin
 					next_state = match ? S_FILL_BLANK : S_DRAW ; // comparator; output match and count (misses)
 				end
-			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output continue; fill char
-			S_FILL_BLANK_WAIT: next_state = continue ? S_LOAD_G : S_WIN;  //
+			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output cont; fill char
+			S_FILL_BLANK_WAIT: next_state = cont? S_LOAD_G : S_WIN;  //
 			S_DRAW: next_state = complete ? S_GRAPHOUT : S_LOAD_G; // draw parts
 			S_WIN: next_state = wipe? S_LOAD_C : S_WIN; // Use "Delete" to control the restart of game
 			//S_WIN: next_state = S_LOAD_C; // flash
@@ -105,29 +105,29 @@ module control(
 		endcase
 	end
 	
-	always@(posedge clk, negedge resetn) begin
+	/*always@(posedge clk) begin
 		if (resetn)
 			wordcount <= 0;
 		else if (load) begin
 			wordcount <= wordcount + 1;
 			remain <= wordcount;
 		end
-	end
+	end*/
 	
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			remain <= 0;
-			continue <= 1'b0;
+			cont<= 1'b0;
 			p2score <= 0;
 		end
 		else begin
 			if (remain == 0) begin
-				continue <= 1'b0;
+				cont<= 1'b0;
 				p2score <= p2score + 1;
 			end
 			if (match) begin
 				remain <= wordcount - count;
-				continue <= 1'b1;
+				cont<= 1'b1;
 			end
 			if (fill == 1'b1) begin
 				if (count != 0) begin
@@ -141,7 +141,7 @@ module control(
 		end
 	end
 	
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			part <= 0;
 			complete <= 1'b0;
@@ -159,7 +159,7 @@ module control(
 		end
 	end
 	
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			p1score <= 0;
 		else if (timeout == 1'b1) begin
@@ -169,7 +169,7 @@ module control(
 	
 	
 	// current_state registers
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if(resetn)
 			current_state <= S_LOAD_C;
 		else 
