@@ -2,7 +2,7 @@ module datapath(
 	input clk,
 	input resetn,
 	input char, // char need to give several bits
-	input load, // enter
+	input ld, // enter
 	input compare, part, p2score, p1score, timecount, 
 	input [4:0] wordlength,
 	output reg [31:0] word, // The length of word shouload smaller or equal to 6;
@@ -24,8 +24,8 @@ module datapath(
 			char <= 0; // the input we will put, it's a single character, it's 5 bits
 			dash <= 1'b0; // dash is the underscore below the every chars
 		end
-		else if (load == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(load), .q(address));
+		else if (ld == 1) begin
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(address));
 			dash <= 1'b1;
 			/*
 			remain <= wordlength;*/
@@ -35,7 +35,7 @@ module datapath(
 	
 	reg [4:0] address;	// This is also can be treated as the length of the words
 						// since we write the chars to memory start from 1
-	always @ (posedge load, posedge resetn)
+	always @ (posedge ld, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
 				address <= 5'd0;

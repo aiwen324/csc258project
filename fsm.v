@@ -16,10 +16,10 @@ module control(
 		  S_WAIT_C = 4'b0001,   // end, inside counter
 		  S_LOAD_GRAPH = 4'b0010,  // start
 		  S_WAIT_GRAPH = 4'b0011,	//wait for input, try
-	          S_LOAD_G = 4'b0100, // match
-	          S_FILL_BLANK = 4'b0101,
-	          S_FILL_BLANK_WAIT = 4'b0110,
-		  	  S_DRAW = 4'b0111, // inside counter
+	      S_LOAD_G = 4'b0100, // match
+	      S_FILL_BLANK = 4'b0101,
+	      S_FILL_BLANK_WAIT = 4'b0110,
+		  S_DRAW = 4'b0111, // inside counter
 		  S_DRAW_WAIT = 4'b1000,
 		  S_WIN = 4'b1001,
 		  S_GRAPHOUT = 4'b1010,
@@ -30,11 +30,14 @@ module control(
 	begin: state_table
 		case(current_state)
 			S_LOAD_C:
-				if (load) begin
+				if (load == 1) begin
 					next_state = S_WAIT_C;
 				end
-				else if(endinput) begin
+				else if(endinput == 1) begin
 					next_state = S_LOAD_GRAPH;  // use 'End' on keyboard to control the endinput
+				end
+				else if(load == 0) begin
+					next_state = S_LOAD_C;
 				end
 			S_WAIT_C: next_state = load ? S_WAIT_C : S_LOAD_C; 
 			S_LOAD_GRAPH: next_state = start ? S_WAIT_GRAPH : S_LOAD_GRAPH; // timecounter
