@@ -1,50 +1,37 @@
 module datapath(
 	input clk,
 	input resetn,
-	input char, // char need to give several bits
+	input char, // char
 	input ld, // enter
 	input compare, part, p2score, p1score, timecount, 
-	output [4:0] wordlength,
-	output reg [4:0] address,
-	output reg [31:0] word, // The length of word shouload smaller or equal to 6;
-	output reg match, count, dash,
+	input [4:0] wordcount,
+	output reg word, match, count, dash
 	output reg draw, // underscore
-	wire [6:0] timecounter,
-	wire timecount
+	output reg [6:0] timecounter
 	);
 	
 	// timecounter
-	displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
+	always@(timecount) begin
+		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
+	end
 	// registers char and draw dashes
-	reg dash;   
+	reg dash;
 	reg [] char;
-	reg i;
 
 	always @ (posedge clk) begin
 		if (resetn) begin
-			char <= 0; // the input we will put, it's a single character, it's 5 bits
-			dash <= 1'b0; // dash is the underscore below the every chars
+			char<= 0;
+			dash <= 1'b0;
+			wordcount <= 0;
 		end
-		else if (ld == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(curchars));
-			dash <= 1'b1;
+		else begin
+			word <= ld ? char : word;
+			dash <= ld && word ? 1'b1 : 1'b0;
+			wordcount <= wordcount + 1;
+			remain <= wordcount;
 			end
 		end
-		
-	
-	reg [4:0] address;	// This is also can be treated as the length of the words
-						// since we write the chars to memory start from 1
-	always @ (posedge ld, posedge resetn)
-		begin
-			if (resetn == 1'b1) begin
-				address <= 5'd0;
-			else begin
-				address <= address + 1;
-		end
-	
-	assign wordlength = address;
-	
-		
+	end
 	// load graph
 	always @(posedge clk) begin
 		if (resetn) begin
@@ -66,14 +53,14 @@ module datapath(
 	
 	
 	
-	/*always@(posedge clk, negedge resetn) begin
+	always@(posedge clk, negedge resetn) begin
 		if (resetn)
-			wordlength <= 0;
-		else if (load) begin
-			wordlength <= wordlength + 1;
-			remain <= wordlength;
+			wordcount <= 0;
+		else if (ld) begin
+			wordcount <= wordcount + 1;
+			remain <= wordcount;
 		end
-	end*/
+	end
 	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
@@ -87,7 +74,7 @@ module datapath(
 				p2score <= p2score + 1;
 			end
 			if (match) begin
-				remain <= wordlength - count;
+				remain <= wordcount - count;
 				continue <= 1'b1;
 			end
 			if (fill == 1'b1) begin

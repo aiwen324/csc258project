@@ -1,32 +1,3 @@
-/*module wordsram(chars, load, clock, q, wren, address);
-	input [4:0] chars;
-	input load;
-	input clock;
-	output reg q;
-	output reg wordlen; // represents the length of the word
-	reg [4:0] address; // represents an address
-	always @(*)
-		begin
-		if (load == 1) begin
-			ram32x5 r0(.address(address), .clock(clock), .data(chars), .wren(1'b1), .q(q));
-			end
-		elif
-		
-	always @(posedge load, posedge resetn)
-		begin
-		if (resetn == 1) 
-			address <= 5'd0;
-		else
-			address <= address + 1;
-		end*/
-	
-
-
-
-
-
-
-
 // megafunction wizard: %RAM: 1-PORT%
 // GENERATION: STANDARD
 // VERSION: WM1.0
