@@ -1,35 +1,41 @@
-module control(
-	input clk,
-	input resetn,
-	input load, 
-	input try, 
-	input endinput, 
-	input start, 
-	input timeout, 
-	input match, 
-	input count, // feedback from datapath
-	output reg ld, 
-	output reg timecount, 
-	output reg compare, 
-	output reg [4:0] address,
-	output reg [3:0] part, 
-	output reg [3:0] p2score, 
-	output reg [3:0] p1score
-	);
+module tmptopmod(clk, resetn, load, finish, endinput, start, timeout, match, wipe, filled, continuous, complete, try, fill, draw, over,
+				ld, timecount, ldguessinput, compare, ldgraph, address);
+	input clk;
+	input resetn; // a key
+	input load; // the key to load the input
+	input finish; // the key to start the input from guesser
+	input endinput; // the key end the input
+	input start;  // the key to start the game, it will make state initialize the timecounter
+	input timeout; // the ffedback timeout signal from datapath(this will be the fake signal in demo1)
+	input match; // the match feedback from datapath(this will be the fake signal in demo1)
+	input wipe; // Command from player, it will be some keys
+	input try; // let ldguessinput signal be 1
+	input complete; // feedback from datapath, (it will be the fake signal in this demo1)
+	input filled; // fake signal
+	input continuous; //fake signal
+	output reg ldguessinput;
+	output reg fill; 
+	output reg draw;
+	output reg over;
+	output reg ld;  // output signal to let datapath make memory load the value
+	output reg timecount; // let timecounter to start count
+	output reg compare;  // let datapath to start compare the value
+	output reg ldgraph; // let datapath to load the graph
+	output reg [4:0] address; // it should be in datapath, but to make it easier for test, this time is in the fsm
 	
-	reg [4:0] remain;
+	
 	reg [3:0] current_state, next_state;
-	reg cont, complete;
-
+	
+	
 	localparam S_LOAD_C = 4'b0000, // load
 		  S_WAIT_C = 4'b0001,   // end, inside counter
 		  S_LOAD_GRAPH = 4'b0010,  // start
-		  S_WAIT_GRAPH = 4'b0011,	//wait for input, try
+		  S_WAIT_GRAPH = 4'b0011,	//wait for input, finish
 	      S_LOAD_G = 4'b0100, // match
+		  S_LOAD_G_WAIT = 4'b1000,
 	      S_FILL_BLANK = 4'b0101,
 	      S_FILL_BLANK_WAIT = 4'b0110,
 		  S_DRAW = 4'b0111, // inside counter
-		  S_DRAW_WAIT = 4'b1000,
 		  S_WIN = 4'b1001,
 		  S_GRAPHOUT = 4'b1010,
 		  S_TIMEOUT = 4'b1011;
@@ -50,24 +56,25 @@ module control(
 				end
 			S_WAIT_C: next_state = load ? S_WAIT_C : S_LOAD_C; 
 			S_LOAD_GRAPH: next_state = start ? S_WAIT_GRAPH : S_LOAD_GRAPH; // timecounter
-			S_WAIT_GRAPH: next_state = try ? S_LOAD_G : S_WAIT_GRAPH; // register misses???   // use "Insert" to control the endinput
-			S_LOAD_G: 
+			S_WAIT_GRAPH: next_state = finish ? S_LOAD_G : S_WAIT_GRAPH; // register misses???   // use "Insert" to control the endinput
+			S_LOAD_G: next_state = try ? S_LOAD_G_WAIT: S_LOAD_G;
+			S_LOAD_G_WAIT:
 				if (timeout) begin
 					next_state = S_TIMEOUT;
 				end
 				else begin
 					next_state = match ? S_FILL_BLANK : S_DRAW ; // comparator; output match and count (misses)
 				end
-			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output cont; fill char
-			S_FILL_BLANK_WAIT: next_state = cont? S_LOAD_G : S_WIN;  //
+			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output continuous; fill char
+			S_FILL_BLANK_WAIT: next_state = continuous? S_LOAD_G : S_WIN;  //
 			S_DRAW: next_state = complete ? S_GRAPHOUT : S_LOAD_G; // draw parts
 			S_WIN: next_state = wipe? S_LOAD_C : S_WIN; // Use "Delete" to control the restart of game
-			//S_WIN: next_state = S_LOAD_C; // flash
 			S_GRAPHOUT: next_state = wipe ? S_LOAD_C : S_GRAPHOUT; // flash 
 			S_TIMEOUT: next_state = wipe? S_LOAD_C : S_GRAPHOUT; // ASYNC, flash
-			default: next_state = S_LOAD_X;
+			default: next_state = S_LOAD_C;
 		endcase
 	end
+	
 	always @(*)
 	begin: enable_signals
 		// By default make all out signals 0
@@ -77,54 +84,55 @@ module control(
 		fill = 1'b0;
 		draw = 1'b0;
 		over = 1'b0;
+		ldguessinput = 1'b0;
+		ldgraph = 1'b0;
 
-		case(current_state)
+		case(current_state) 
 		S_LOAD_C: begin
 				ld = 1'b1; 
-			end	
-		//	S_WAIT_C: begin
-		//		wordcount <= wordcount +1;
-		//		end	
-	        S_LOAD_GRAPH: begin
+			end
+		/*S_WAIT_C: begin
+				wordcount = wordcount +1;
+			end*/
+	    S_LOAD_GRAPH: begin
 				ldgraph = 1'b1; // it will load the graph of basic things
 			end
 		S_WAIT_GRAPH: begin
 				timecount = 1'b1; // it will let the display time to 
 			end
 		S_LOAD_G: begin
-				compare = 1'b1; // it will compare the value of register and the input
+				ldguessinput = 1'b1; // it will let the reg in datapath to load the input
+				timecount = 1'b1;
 			end
-      		S_FILL_BLANK: begin
+		S_LOAD_G_WAIT: begin
+				compare = 1'b1; // it will compare the value of register and the input
+				timecount = 1'b1;
+			end
+      	S_FILL_BLANK: begin
 				fill = 1'b1;
-		//		count <= count -1;   // Probably don't need this
+				timecount = 1'b1;
 			end
 		S_DRAW: begin
 				draw = 1'b1;
-		//		part <= part+1;
+				timecount = 1'b1;
 			end
-			S_WIN: begin
-		//		p2score <= p2score + 1;
+		S_WIN: begin
 				over = 1'b1;
+				timecount = 1'b0;
 			end
-			S_GRAPHOUT: begin
-		//		p1score <= p1score + 1;
-				over = 1'b1;
+		S_FILL_BLANK_WAIT: begin
+				timecount = 1'b1;
 			end
-			S_TIMEOUT: begin
-		//		p1score <= p1score + 1;
+		S_GRAPHOUT: begin
 				over = 1'b1;
+				timecount = 1'b0;
+			end
+		S_TIMEOUT: begin 
+				over = 1'b1;
+				timecount = 1'b0;
 			end
 		endcase
 	end
-	
-	/*always@(posedge clk) begin
-		if (resetn)
-			wordcount <= 0;
-		else if (load) begin
-			wordcount <= wordcount + 1;
-			remain <= wordcount;
-		end
-	end*/
 	
 	always @ (posedge ld, posedge resetn)
 		begin
@@ -133,65 +141,11 @@ module control(
 			end
 			else begin
 				address <= address + 1;
-				remain <= address;
 			end
 		end
 	
-	always@(posedge clk) begin
-		if (resetn) begin
-			remain <= 0;
-			cont <= 1'b0;
-			p2score <= 0;
-		end
-		else begin
-			if (remain == 0) begin
-				cont<= 1'b0;
-				p2score <= p2score + 1;
-			end
-			if (match) begin
-				remain <= wordcount - count;
-				cont<= 1'b1;
-			end
-			if (fill == 1'b1) begin
-				if (count != 0) begin
-					count <= count -1;
-					filled <= 1'b0;
-				end
-				if (count == 0) begin
-					filled <= 1'b1;
-				end
-			end
-		end
-	end
-	
-	/*always@(posedge clk) begin
-		if (resetn) begin
-			part <= 0;
-			complete <= 1'b0;
-			p1score <= 0;
-		end
-		else begin
-			if (part == 4'b1001) begin
-				complete <= 1'b1;
-				p1score <= p1score + 1;
-			end
-			if (draw) begin
-				part <= part + 1;
-				complete <= 1'b0;
-			end
-		end
-	end
-	
-	always@(posedge clk) begin
-		if (resetn) begin
-			p1score <= 0;
-		end
-		else if (timeout == 1'b1) begin
-				p1score <= p1score + 1;			
-		end
-	end
-	
-	
+
+		
 	// current_state registers
 	always@(posedge clk) begin
 		if(resetn)
@@ -199,4 +153,4 @@ module control(
 		else 
 			current_state <= next_state;
 	end
-endmodule*/
+endmodule
