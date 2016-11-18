@@ -37,7 +37,6 @@ module datapath(
 			remain <= wordlength;*/
 			end
 		end
-			ram32v5 r1(.address(address), .clk(clk), .data(char), .wren(1'b1), .q(word));
 		
 	
 	reg [4:0] address;	// This is also can be treated as the length of the words
