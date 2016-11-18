@@ -164,7 +164,7 @@ module control(
 		end
 	end
 	
-	always@(posedge clk) begin
+	/*always@(posedge clk) begin
 		if (resetn) begin
 			part <= 0;
 			complete <= 1'b0;
@@ -199,4 +199,4 @@ module control(
 		else 
 			current_state <= next_state;
 	end
-endmodule
+endmodule*/

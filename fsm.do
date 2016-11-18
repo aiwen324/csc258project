@@ -6,22 +6,30 @@ vlib work
 # The timescale argument defines default time unit
 # (used when no unit is specified), while the second number
 # defines precision (all times are rounded to this value)
-vlog -timescale 1ps/1ps fsm.v
+vlog -timescale 1ps/1ps tmptopmod.v
 # Load simulation using mux as the top level simulation module.
-vsim control
+vsim tmptopmod
 
 # Log all signals and add some signals to waveform window.
 log {/*}
 # add wave {/*} would add all items in top level simulation module.
 add wave {/*}
 
-#input clk,
-#input resetn,
-#input load, try, endinput, start, timeout, 
-#input match, count
+
+	#input clk,
+	#input resetn,
+	#input load, 
+	#input try, 
+	#input endinput,
+	#input start,
+	#input timeout, 
+	#input match,
+	#input [4:0] count, 
+	#input wipe, 
+	#input complete
 
 # input process
-force {clock} 0 0, 1 1 -r 2
+force {clk} 0 0, 1 1 -r 2
 # clock has posedge in 1, 3, 5, 7, 9 ...
 force {resetn} 1 0, 0 2
 force {load} 0 0, 1 10, 0 20, 1 30, 0 40, 1 50, 0 60
@@ -35,7 +43,9 @@ force {try} 0
 force {start} 0
 force {timeout} 0
 force {match} 0
-force {count} 0
+force {count} 5'b00000
+force {wipe} 1
+force {complete} 0
 run 80ps
 
 # draw process
@@ -50,16 +60,17 @@ force {try} 0 0, 1 4, 0 6
 # next state equals S_LOAD_G at				4 - 6
 # curent state equals S_LOAD_G at			5
 # compare equals 1 at 						5
-force {match} 0 0, 1 8
+force {match} 0 0, 1 8 
 # curent state equals S_FILL_BLANK at		9
 force {timeout} 0
-force {count}  0 0, 1 8
+force {count}  5'b00000 0, 5'b00001 8, 5'b00000 10, 5'b00001 13
 # filled equals 0 at 						9
 # count equals 0 at 						9.x
 # filled equals 1 at						11.x
 # current state equals S_FILL_BLANK_WAIT at	13
-
-
+force {complete} 0
+force {wipe} 0
+run 30ps
 
 
 

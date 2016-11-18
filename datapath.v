@@ -4,7 +4,8 @@ module datapath(
 	input char, // char need to give several bits
 	input ld, // enter
 	input compare, part, p2score, p1score, timecount, 
-	input [4:0] wordlength,
+	output [4:0] wordlength,
+	output reg [4:0] address,
 	output reg [31:0] word, // The length of word shouload smaller or equal to 6;
 	output reg match, count, dash,
 	output reg draw, // underscore
@@ -25,10 +26,8 @@ module datapath(
 			dash <= 1'b0; // dash is the underscore below the every chars
 		end
 		else if (ld == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(address));
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(curchars));
 			dash <= 1'b1;
-			/*
-			remain <= wordlength;*/
 			end
 		end
 		
@@ -41,8 +40,9 @@ module datapath(
 				address <= 5'd0;
 			else begin
 				address <= address + 1;
-				
 		end
+	
+	assign wordlength = address;
 	
 		
 	// load graph
