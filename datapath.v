@@ -15,8 +15,7 @@ module datapath(
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
 	end
-		// change 2 for another test
-
+		// change 2 for another test mmmmm
 	// registers char
 	reg dash;
 	reg [4：0] char;
