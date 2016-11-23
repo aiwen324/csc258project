@@ -9,7 +9,7 @@ module datapath(
 	output reg [15:0] qout, // to vga
 	output [6:0] HEX0, HEX1
 	);
-	
+	// add one line to say the difference
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
