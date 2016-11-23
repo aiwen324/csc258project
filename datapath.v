@@ -1,14 +1,12 @@
 module datapath(
 	input clk,
 	input resetn,
-	input char, guess// char, guess
-	input ld, ld_g, // enter
-	input compare, p2score, p1score, timecount, wipe,
+	input [4:0] char, guess// char, guess from keyboard
+	input ld, timecount, compare, fill, draw, over, ld_g,// from control
 	output reg [2:0] color,
-	output reg word, match, finish, 
-	output reg draw, // underscore
-	output reg [6:0] timecounter
-	output reg [15:0] qout, q1out, q2out, q3out, q4out, clearout, drawout, 
+	output reg word, match, finish, graph_loaded, timeout,// to control
+	output reg [6:0] timecounter, // to vga / hex
+	output reg [15:0] qout, // to vga
 	output [6:0] HEX0, HEX1
 	);
 	
@@ -30,7 +28,7 @@ module datapath(
 		else if (fill) begin
 			assign color = 3'b010;// green
 		end
-		else if (continue) begin
+		else if (over) begin
 			assign color = 3'b000;// black
 		end
 	end
@@ -38,7 +36,7 @@ module datapath(
 	
 	// registers char
 	reg dash;
-	reg [4：0] char;
+	reg [39：0] wordinput;
 	reg [4:0] wordcount, remain;
 	reg [3:0] counter4;
 	wire counter4_clear;
@@ -58,7 +56,7 @@ module datapath(
 		end
 		
 	
-	reg [4:0] address;	// This is also can be treated as the length of the words
+	reg [4:0] address;	// This also can be treated as the length of the words
 						// since we write the chars to memory start from 1
 	always @ (posedge ld, posedge resetn)
 		begin
@@ -73,7 +71,7 @@ module datapath(
 	// draw dashes
 	drawdash d1(.dash(dash), .resetn(resetn), .clk(clk), .qout(qout));
 	// load graph
-	load_graph l0(.clk(clk), .resetn(resetn), .ld_g(ld_g), .q1out(q1out), .q2out(q2out), .q3out(q3out), .q4out(q4out));
+	load_graph l0(.clk(clk), .resetn(resetn), .ld_g(ld_g), .qout(qout));
 	// compare guesschar with registered char; ouput match and count and match position
 	wire count, position;
 	// fill blank
@@ -89,7 +87,7 @@ module datapath(
 				filled <= 1'b1;
 				end
 	end
-	// draw parts/endgame
+	// draw parts/endgame and register scores
 	reg [2:0] part;
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
@@ -103,7 +101,7 @@ module datapath(
 				p1score <= p1score + 1;
 			end
 			else begin
-				drawparts d0(.part(part), .draw(draw), .out(drawout));
+				drawparts d0(.part(part), .draw(draw), .out(qout));
 				part <= part + 1;
 				complete <= 1'b0;
 			end
@@ -139,7 +137,7 @@ module datapath(
 	end
 	
 	// wipe all the images
-	clear c0(.(wipe) .resetn(resetn), .clk(clk),.clearout(clearout));
+	clear c0(.over(over) .resetn(resetn), .clk(clk),.clearout(qout));
 	// display
 	Hexdecoder h2(p2score[3], p2score[2], p2score[1], p2score[0], .HEX(HEX0));
 	Hexdecoder h1(p1score[3], p1score[2], p1score[1], p1score[0], .HEX(HEX1));
@@ -179,10 +177,11 @@ module drawdash(
 endmodule
 module load_graph(
 	input clk, resetn, ld_g, 
-	output reg [15:0] q1out, q2out, q3out, q4out);
+	output reg graph_loaded,
+	output reg [15:0] qout;
 	
 	reg [1:0] counter1; reg [5:0] counter2; reg[4:0] counter3; reg [3:0] counter4; reg [6:0] counter5;
-	wire counter1_clear, counter2_clear, counter3_clear, counter4_clear, counter5_clear;
+	wire counter1_clear, counter2_clear, counter3_clear, counter4_clear, counter5_clear, en0, en1, en2, en3;
 	localparam x1 = 8'd100, y1 = 7'd20, x2 = 8'd80, x3 = 8'd30, y2 = 7'd78;
 	
 	assign counter1_clear = (counter1 == 2'b10); // +2
@@ -190,98 +189,97 @@ module load_graph(
 	assign counter3_clear = (counter3 == 5'b10110); //+22
 	assign counter4_clear = (counter4 == 4'b1010); //+10
 	assign counter5_clear = (counter5 == 7'b1010000); //+80
-	
-	always @(posedge clk) begin
-		if (resetn) begin
-			counter2 <= 0;
-		//	finish <= 1’b0;
-		end
-		else if (ld_g) begin
-			if (counter2_clear) begin
-				counter2 <= 0;
-		//		finish <= 1’b1;
-			end
-		 	else begin
-				counter2 <= counter2 + 1;
-			end
-	end
-	
-	always @(posedge clk) begin
-		if (resetn) begin
-			counter1<= 0;
-			end
-		else if (ld_g) begin
-			if ((counter2_clear || counter3_clear || counter4_clear) && counter1_clear)  begin
-				counter1 <= 0;
-				end
-			else if (counter2_clear) begin
-				counter1 <= counter1+1;
-				end
-			else if (counter3_clear) begin
-				counter1 <= counter1+1;
-			else if (counter4_clear) begin
-				counter1 <= counter1+1;
-			else if (counter5_clear) begin
-				counter1 <= counter1+1;
-		end
-	end
-	
-	always @(posedge clk) begin
-		if (resetn) begin
-			counter3 <= 0;
-		//	finish <= 1’b0;
-		end
-		else if (ld_g) begin
-			if (counter3_clear) begin
-				counter3 <= 0;
-		//		finish <= 1’b1;
-			end
-		 	else begin
-				counter3 <= counter3 + 1;
-			end
-	end
-	
-	always @(posedge clk) begin
-		if (resetn) begin
-			counter4 <= 0;
-		//	finish <= 1’b0;
-		end
-		else if (ld_g) begin
-			if (counter4_clear) begin
-				counter4 <= 0;
-		//		finish <= 1’b1;
-			end
-		 	else begin
-				counter4 <= counter4 + 1;
-			end
-	end
-	
+	assign en0 = ld_g ? 1'b1 : 1'b0;
 	always @(posedge clk) begin
 		if (resetn) begin
 			counter5 <= 0;
-		//	finish <= 1’b0;
+			counter1 <= 0;
+			counter2 <= 0;
+			counter3 <= 0;
+			counter4 <= 0;
+			qout <= 0;
+			graph_loaded <= 0;
 		end
-		else if (ld_g) begin
+		else if (en0) begin
 			if (counter5_clear) begin
+				qout <= {x3+counter5, y2+counter1};
 				counter5 <= 0;
-		//		finish <= 1’b1;
+				counter1 <= counter1+1;
 			end
-		 	else begin
-				counter5 <= counter5 + 1;
+		 	else if (counter1_clear && counter5_clear) begin
+		 		qout <= {x3+counter5, y2+counter1};
+				counter5 <= 0;
+				counter1 <= 0;
+				en1<= 1;
 			end
+			else begin
+				qout <= {x3+counter5, y2+counter1};
+				counter5 <= counter5+1;
+			end
+		else if (en1) begin
+				if (counter2_clear) begin
+				qout<= {x1+counter1,y1+counter2};
+				counter2 <= 0;
+				counter1 <= counter1+1;
+				end
+			else if (counter1_clear && counter2_clear) begin
+				qout<= {x1+counter1,y1+counter2};
+				counter2 <= 0;
+				counter1 <= 0;
+				en2 <= 1;
+				en1 <= 0;
+			end
+			else begin
+				qout<= {x1+counter1,y1+counter2};
+				counter2 <= counter2+1;
+			end
+			
+		end
+		else if (en2) begin
+			if (counter3_clear) begin
+				qout<= {x2+counter3,y1+counter1};
+				counter3 <= 0;
+				counter1 <= counter1+1;
+				end
+			else if (counter3_clear && counter1_clear) begin
+				qout<= {x2+counter3,y1+counter1};
+				counter3 <= 0;
+				counter1 <= 0;
+				en3 <= 1;
+				en2 <= 0;
+			end
+			else begin
+				qout<= {x2+counter3,y1+counter1};
+				counter3 <= counter3+1;
+			end
+		else if (en3) begin
+			if (counter4_clear) begin
+				qout<= {x2+counter1,y1+counter4};
+				counter4 <= 0;
+				counter1 <= counter1+1;
+				end
+			else if (counter4_clear && counter1_clear) begin
+				qout<= {x2+counter1,y1+counter4};
+				counter4 <= 0;
+				counter1 <= 0;
+				en3 <= 0;
+				graph_loaded <= 1;
+			end
+			else begin
+				qout<= {x2+counter1,y1+counter4};
+				counter4 <= counter4+1;
+			end
+		end
 	end
 	
 	always @(*) begin
-		q1out = {x1+counter1,y1+counter2};
 		//x1out <= x1+counter1[];
 		//y1out <= y1+counter2[];
-		q2out = {x2+counter3,y1+counter1};
 		//x2out <= x2+counter2[];
 		//y2out <= y2+counter2[];
 		q3out = {x2+counter1,y1+counter4};
 		//x3out <= x3+counter3[];
 		//y3out <= y3+counter3[];
-		q4out = {x3+counter5, y2+counter1};
 	end
 endmodule
 module HexDecoder(d, c, b, a, HEX);
@@ -306,26 +304,28 @@ module HexDecoder(d, c, b, a, HEX);
 endmodule
 
 module clear(
-	input wipe, clk, resetn,
+	input over, clk, resetn,
 	output reg [15:0] clearout
 	);
 	reg [7:0] xCounter; reg [6:0] yCounter;
 	wire xCounter_clear, yCounter_clear;
+	assign xCounter_clear = (xCounter == 8'b10100000);
+	assign yCounter_clear = (yCounter == 7'b1111000); 
 	
 	always @(posedge clk, negedge resetn)
 	begin
 		if (!resetn)
 			xCounter <= 10'd0;
-		else if (xCounter_clear)
-			xCounter <= 10'd0;
-		else
-		begin
+		else if(over) begin 
+			if (xCounter_clear) begin
+				xCounter <= 10'd0;
+			end
+			else begin
 			xCounter <= xCounter + 1'b1;
+			end
 		end
 	end
-	assign xCounter_clear = (xCounter == 8'b10100000);
-
-	/* A counter to scan vertically, indicating the row currently being drawn. */
+	
 	always @(posedge vga_clock or negedge resetn)
 	begin
 		if (!resetn)
@@ -335,24 +335,27 @@ module clear(
 		else if (xCounter_clear)		//Increment when x counter resets
 			yCounter <= yCounter + 1'b1;
 	end
-	assign yCounter_clear = (yCounter == 7'b1111000); 
+	
 	
 	always @(*) begin
 		clearout =	{xCounter, yCounter};
 	end
 endmodule
-module fillblank(
-	input position,
-	output [15:0] out);
-endmodule
+
 module drawparts(
 	input draw, resetn, clk,
 	input [2:0] part,
 	output reg finish,
 	output reg [15:0] drawout
 	);
-	wire counter2_clear, counter1_clear, counter3_clear
-	reg en1, en2, en3;
+	
+	wire counter2_clear, counter1_clear, counter3_clear, counter4_clear, counter5_clear, counter6_clear;
+	reg en1, en2, en3, en4, en5, en6, en7;
+	reg [1:0] counter1;
+	reg [2:0] counter4, counter5;
+	reg [3:0] counter3, counter6;
+	reg [4:0] counter2;
+	
 	localparam x1 = 8'd80, y1 = 7'd30, x2 = 8'd81， y2 = 7'd40, y3 = 7'd60, 
 	x3 = 8'd79, x4 = 8'd78, x5 = 8'd77, x6 = 8'd76, y4 = 7'd31, y5 = 7'd32, y6 = 7'd33;
 	assign counter1_clear = (counter1 == 2'b10); // +2
@@ -361,12 +364,8 @@ module drawparts(
 	assign counter4_clear = (counter4 == 3'b100);//+4
 	assign counter5_clear = (counter5 == 3'b111);//+6
 	assign counter6_clear = (counter6 == 4'b1000);//+8
-	assign counter7_clear = (counter7 == 4'b1010); //+10
-	assign counter8_clear = (counter8 == 4'b1010); //+10
-	reg [15:0] circle;
-	always @(posedge clk)
-		
 	
+	// cases of every parts.
 	always @(posedge clk) 
 		if (resetn) begin
 			drawout <= 0;
@@ -375,13 +374,7 @@ module drawparts(
 			case(draw)
 				3'b0000: 
 					en4 <= 1'b1;
-					en5 <= 1'b1;
-					en6 <= 1'b1;
-					en3 <= 1'b1;
-					drawout1<= {x3+counter4, y1+counter8};
-					drawout2<= {x4+counter5, y4+counter6};
-					drawout3<= {x5+counter6, y5+counter5};
-					drawout4<= {x6+counter7, y6+counter4};// circle (x1, y1)
+					drawout<= circle;// circle
 				3'b0001: begin
 					en2 <= 1'b1;
 					en1 <= 1'b1;
@@ -406,21 +399,87 @@ module drawparts(
 				default: drawout <= 0;
 			endcase
 	end
-	
+	reg [15:0] circle; // head
 	always @(posedge clk) begin
 		if (resetn) begin
+			counter3 <= 0;
 			counter4<= 0;
+			counter5<= 0;
+			counter6<= 0;
 			end
-		else if (en1) begin
-			if (counter4_clear) begin
+		else if (en4) begin
+			if (counter3_clear) begin
+				circle<= {x3+counter4, y1+counter3};
+				counter3 <= 0;
 				counter4 <= counter4+1;
 				end
-			else if (counter2_clear && counter4_clear) begin
+			else if (counter3_clear && counter4_clear) begin
+				circle<= {x3+counter4, y1+counter3};
 				counter4 <= 0;
+				counter3 <= 0;
+				en4<= 0;
+				en5<=1;
+			end
+			else begin
+				circle<= {x3+counter4, y1+counter3};
+				counter3 <= counter3+1;
+			end
+		end
+		else if (en5) begin
+			if (counter6_clear) begin
+				circle<= {x4+counter5, y4+counter6};
+				counter6 <= 0;
+				counter5 <= counter5+1;
+				end
+			else if (counter5_clear && counter6_clear) begin
+				circle<= {x4+counter5, y4+counter6};
+				counter5 <= 0;
+				counter6 <= 0;
+				en5 <= 0;
+				en6 <=1;
+			end
+			else begin
+				circle<= {x4+counter5, y4+counter6};
+				counter6 <= counter6+1;
+			end
+		
+		else if (en6) begin
+			if (counter6_clear) begin
+				circle<= {x5+counter6, y5+counter5};
+				counter6 <= 0;
+				counter5 <= counter5+1;
+				end
+			else if (counter5_clear && counter6_clear) begin
+				circle<= {x5+counter6, y5+counter5};
+				counter5 <= 0;
+				counter6 <= 0;
+				en6 <= 0;
+				en7 <= 1;
+			end
+			else begin
+				circle<= {x5+counter6, y5+counter5};
+				counter6 <= counter6+1;
+			end
+		else if (en7) begin
+			if (counter3_clear) begin
+				circle<= {x6+counter3, y6+counter4};
+				counter3 <= 0;
+				counter4 <= counter4+1;
+				end
+			else if (counter3_clear && counter4_clear) begin
+				circle<= {x6+counter3, y6+counter4};
+				counter4 <= 0;
+				counter3 <= 0;
+				en7 <= 0;
+				finish <= 1;
+			end
+			else begin
+				circle<= {x6+counter3, y6+counter4};
+				counter3 <= counter3+1;
 			end
 		end
 	end
-	
+	// counter1+2 = body(+2, +20)
 	always @(posedge clk) begin
 		if (resetn) begin
 			counter1<= 0;
@@ -434,7 +493,21 @@ module drawparts(
 			end
 		end
 	end
-				
+	always @(posedge clk) begin
+		if (resetn) begin
+			counter2 <= 0;
+			finish <= 1'b0;
+		end
+		else if (en2) begin
+			if (counter2_clear) begin
+				counter2 <= 0;
+				finish <= 1'b1;
+			end
+		 	else begin
+				counter2 <= counter2 + 1;
+			end
+	end
+	// +10 diagonal(+10, +10)
 	always @(posedge clk) begin
 		if (resetn) begin
 			counter3 <= 0;
@@ -450,22 +523,13 @@ module drawparts(
 			end
 	end
 	
-	always @(posedge clk) begin
-		if (resetn) begin
-			counter2 <= 0;
-			finish <= 1'b0;
-		end
-		else if (en2) begin
-			if (counter2_clear) begin
-				counter2 <= 0;
-				finish <= 1'b1;
-			end
-		 	else begin
-				counter2 <= counter2 + 1;
-			end
-	end
+	
 endmodule
 
+module fillblank(
+	input position,
+	output [15:0] out);
+endmodule
 	
 	
 	

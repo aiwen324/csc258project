@@ -1,9 +1,9 @@
 module control(
 	input clk,
 	input resetn,
-	input load, endin, start, timeout, wipe, finish
+	input load, endinput, start, timeout, wipe, finish, complete, continue, graph_loaded, try
 	input match// feedback from datapath
-	output reg ld, timecount, compare, 
+	output reg ld, timecount, compare, fill, draw, over, ld_g,
 	output reg[3:0] part, p2score, p1score
 	);
 	
@@ -20,10 +20,10 @@ module control(
 	          S_FILL_BLANK = 4'b0110,
 	          S_FILL_BLANK_WAIT = 4'b0111,
 		  	  S_DRAW = 4'b1000, // inside counter
-		  S_WIN = 4'b1001,
-		  S_GRAPHOUT = 4'b1010,
-		  S_TIMEOUT = 4'b1011;
-		  S_WIPE = 4'b1111;
+		  	  S_DRAW_WAIT = 4'b1001,
+		  S_WIN = 4'b1010,
+		  S_GRAPHOUT = 4'b1011,
+		  S_TIMEOUT = 4'b1100;
 
 	always@(*)
 	begin: state_table
@@ -35,13 +35,13 @@ module control(
 				else if(endinput == 1) begin
 					next_state = S_LOAD_GRAPH;  // use 'End' on keyboard to control the endinput
 				end
-				else if(load == 0) begin
+				else if(load == 0 || endinput == 0) begin
 					next_state = S_LOAD_C;
 				end
 			S_WAIT_C: next_state = load ? S_WAIT_C : S_LOAD_C; 
 			S_LOAD_GRAPH: next_state = start ? S_WAIT_GRAPH : S_LOAD_GRAPH; // timecounter
-			S_WAIT_GRAPH: next_state = finish ? S_LOAD_G : S_WAIT_GRAPH; // register misses???   // use "Insert" to control the endinput
-			S_LOAD_G: next_state = try ? S_LOAD_G_WAIT : S_LOAD_G; 
+			S_WAIT_GRAPH: next_state = graph_loaded ? S_LOAD_G : S_WAIT_GRAPH; // register misses???   // use "Insert" to control the endinput
+			S_LOAD_G: next_state = try ? S_LOAD_G_WAIT : S_LOAD_G;  // some key
 			S_LOAD_G_WAIT: 
 				if (timeout) begin
 					next_state = S_TIMEOUT;
@@ -50,7 +50,7 @@ module control(
 					next_state = match ? S_FILL_BLANK : S_DRAW ; // comparator; output match and count (misses)
 				end
 			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output cont; fill char
-			S_FILL_BLANK_WAIT: next_state = cont? S_LOAD_G : S_WIN;  //
+			S_FILL_BLANK_WAIT: next_state = continue? S_LOAD_G : S_WIN;  //
 			S_DRAW: next_state = finish ? S_DRAW_WAIT : S_DRAW; // draw parts
 			S_DRAW_WAIT: next_state = complete ? S_GRAPHOUT : S_LOAD_G; // finish drawing
 			S_WIN: next_state = wipe? S_LOAD_C : S_WIN; // Use "Delete" to control the restart of game
@@ -84,26 +84,27 @@ module control(
 			end
 			S_LOAD_G: begin
 				compare = 1'b1;
+				timecount = 1'b1;
 			end
       		S_FILL_BLANK: begin
 				fill = 1'b1;
-		//		count <= count -1;
+				timecount = 1'b1;
 			end
 		  	S_DRAW: begin
 				draw = 1'b1;
-		//		part <= part+1;
+				timecount = 1'b1;
 			end
 			S_WIN: begin
-		//		p2score <= p2score + 1;
-				over = 1'b1;
+				timecount = 1'b0;
+				over = wipe ? 1'b1 : 1'b0;
 			end
 			S_GRAPHOUT: begin
-		//		p1score <= p1score + 1;
-				over = 1'b1;
+				timecount = 1'b0;
+				over = wipe ? 1'b1 : 1'b0;
 			end
 			S_TIMEOUT: begin
-		//		p1score <= p1score + 1;
-				over = 1'b1;
+				timecount = 1'b0;
+				over = wipe ? 1'b1 : 1'b0;
 			end
 		endcase
 	end
