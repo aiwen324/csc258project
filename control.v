@@ -1,9 +1,10 @@
 module control(
 	input clk,
 	input resetn,
-	input load, endinput, start, timeout, wipe, finish, complete, continue, graph_loaded, try
-	input match// feedback from datapath
-	output reg ld, timecount, compare, fill, draw, over, ld_g,
+	input load, endinput, start, wipe, try // from keyboard
+	input timeout, finish, complete, continue, graph_loaded, match,// from datapath
+	output reg ld, timecount, compare, fill, draw, over, ld_g, // to datapath
+	output reg plot, // writeEn to vga to change color
 	output reg[3:0] part, p2score, p1score
 	);
 	
@@ -70,14 +71,16 @@ module control(
 		draw = 1'b0;
 		over = 1'b0;
 		ld_g = 1'b0;
-		
+		plot = 1'b0;
 
 		case(current_state)
 			S_LOAD_C: begin
 				ld = 1'b1; 
+				plot = 1'b1;
 				end	
 	        S_LOAD_GRAPH: begin
 				ld_g = 1'b1;
+				plot = 1'b1;
 			end
 		  	S_WAIT_GRAPH: begin
 				timecount = 1'b1;
@@ -89,22 +92,27 @@ module control(
       		S_FILL_BLANK: begin
 				fill = 1'b1;
 				timecount = 1'b1;
+				plot = 1'b1;
 			end
 		  	S_DRAW: begin
 				draw = 1'b1;
 				timecount = 1'b1;
+				plot = 1'b1;
 			end
 			S_WIN: begin
 				timecount = 1'b0;
 				over = wipe ? 1'b1 : 1'b0;
+				plot = 1'b1;
 			end
 			S_GRAPHOUT: begin
 				timecount = 1'b0;
 				over = wipe ? 1'b1 : 1'b0;
+				plot = 1'b1;
 			end
 			S_TIMEOUT: begin
 				timecount = 1'b0;
 				over = wipe ? 1'b1 : 1'b0;
+				plot = 1'b1;
 			end
 		endcase
 	end
