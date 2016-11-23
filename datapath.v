@@ -48,11 +48,14 @@ module datapath(
 			dash <= 1'b0; // dash is the underscore below the every chars
 		end
 		else if (ld == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(word));
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(l'b1), .q(word));
 			dash <= 1'b1;
 			/*
 			remain <= wordlength;*/
 			end
+		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
+								//to tell when to read
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
 		end
 		
 	
