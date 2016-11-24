@@ -7,7 +7,7 @@ module fillblank(
 	output [13:0] qout;
 	);
 	
-	wire counter2_clear, counter1_clear, ld_p;
+	wire counter2_clear, counter1_clear, ld_p, p;
 	assign counter1_clear = (counter1 == 3'b101);//+5
 	assign counter2_clear = (counter2 == 3'b101); //+5
 	reg [29:0] pout, pixel;
@@ -47,7 +47,6 @@ module fillblank(
 		end
 		else 
 		begin
-			ld_p <= 1;
 			pout <= pixel;
 		end
 		else if (fill) 
@@ -55,11 +54,11 @@ module fillblank(
 			pout <= pout << 1'b1;
 		end
 	end
-
+	assign p = pout[29];
 	always @(*) begin
 		if (resetn) begin
 			pixel <= 0;
-		else if (ld_p) begin
+		else begin
 			case(char)
 			a: pixel = 30'b011101000110001111111000110001;
 			b: pixel = 30'b111101000111110100011000111110;
@@ -96,10 +95,12 @@ module fillblank(
 			cell1 <= 0;
 			qout1 <= 0;
 		end
-		else begin
+		else if (fill)begin
 		cell1 <= {8'd17+counter1, 7'd95+counter2};
 		end
-		
+		else begin
+		cell1 <= {8'd17, 7'd95};
+		end
 	end
 	// cell 2
 	always @(posedge clk) begin
@@ -107,8 +108,11 @@ module fillblank(
 			cell2 <= 0;
 			qout2 <= 0;
 		end
-		else begin
+		else if (fill)begin
 		cell2 <= {8'd31+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell2 <= {8'd31, 7'd95};
 		end
 		
 	end
@@ -118,8 +122,11 @@ module fillblank(
 			cell3 <= 0;
 
 		end
-		else  begin
+		else if (fill)begin
 		cell3 <= {8'd45+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell3 <= {8'd45, 7'd95};
 		end
 		
 	end
@@ -129,8 +136,11 @@ module fillblank(
 			cell4 <= 0;
 
 		end
-		else begin
+		else if (fill)begin
 		cell4 <= {8'd59+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell4 <= {8'd59, 7'd95};
 		end
 		
 	end
@@ -140,20 +150,24 @@ module fillblank(
 			cell5 <= 0;
 
 		end
-		else begin
+		else if (fill)begin
 		cell5 <= {8'd73+counter1, 7'd95+counter2};
 		end
-		
+		else begin
+		cell5 <= {8'd73, 7'd95};
+		end
 	end
 	// cell 6
 	always @(posedge clk) begin
 		if (resetn) begin
 			cell6 <= 0;
 		end
-		else begin
+		else if (fill)begin
 		cell6 <= {8'd87+counter1, 7'd95+counter2};
 		end
-		
+		else begin
+		cell6 <= {8'd87, 7'd95};
+		end
 	end
 	// cell 7
 	always @(posedge clk) begin
@@ -161,8 +175,11 @@ module fillblank(
 			cell7 <= 0;
 
 		end
-		else  begin
+		else if (fill)begin
 		cell7 <= {8'd101+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell7 <= {8'd101, 7'd95};
 		end
 	end
 	// cell 8
@@ -171,8 +188,11 @@ module fillblank(
 			cell8 <= 0;
 
 		end
-		else begin
+		else if (fill)begin
 		cell8 <= {8'd115+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell8 <= {8'd115, 7'd95};
 		end
 	end
 	// cell 9
@@ -181,8 +201,11 @@ module fillblank(
 			cell9 <= 0;
 
 		end
-		else begin
+		else if (fill)begin
 		cell9 <= {8'd129+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell9 <= {8'd129, 7'd95};
 		end
 	end
 	// cell 10
@@ -191,45 +214,52 @@ module fillblank(
 			cell10 <= 0;
 
 		end
-		else begin
+		else if (fill)begin
 		cell10 <= {8'd143+counter1, 7'd95+counter2};
+		end
+		else begin
+		cell10 <= {8'd143, 7'd95};
 		end
 	end
 
 	
 	always @(posedge clk) begin
+		if (resetn) begin
+			qout <= 0;
+		end
 		case(position) begin
 			5'b00001: begin
-				qout <= p[29] ? cell1 : qout;
+				qout <= p ? cell1 : qout;
 			end
 			5'b00010: begin
-				qout <= p[29] ? cell2 : qout;
+				qout <= p ? cell2 : qout;
 			end
 			5'b00011: begin
-				qout <= p[29] ? cell3 : qout;
+				qout <= p ? cell3 : qout;
 			end
 			5'b00100: begin
-				qout <= p[29] ? cell4 : qout;
+				qout <= p ? cell4 : qout;
 			end
 			5'b00101: begin
-				qout <= p[29] ? cell5 : qout;
+				qout <= p ? cell5 : qout;
 			end
 			5'b00110: begin
-				qout <= p[29] ? cell6 : qout;
+				qout <= p ? cell6 : qout;
 			end
 			5'b00111: begin
-				qout <= p[29] ? cell7 : qout;
+				qout <= p ? cell7 : qout;
 			end
 			5'b01000: begin
-				qout <= p[29] ? cell8 : qout;
+				qout <= p ? cell8 : qout;
 			end
 			5'b01001:begin
-				qout <= p[29] ? cell9 : qout;
+				qout <= p ? cell9 : qout;
 			end
 			5'b01010: begin
-				qout <= p[29] ? cell10 : qout;
-			end
+				qout <= p ? cell10 : qout;
+			end 
 		endcase
+		end
 	end			
 	
 	always @(posedge clk) begin
@@ -239,7 +269,7 @@ module fillblank(
 		else if (counter1_clear) begin
 				counter1 <= 0;
 			end
-		 	else begin
+		 	else if (fill) begin
 				counter1 <= counter1 + 1;
 			end
 	end

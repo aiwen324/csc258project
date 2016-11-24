@@ -117,6 +117,7 @@ module datapath(
 			position <= 5'b00000;
 		end
 		else if (compare) begin
+			
 			match <= 1'b0;
 			guesschar <= guess;
 			if (guesschar == word) begin
@@ -137,6 +138,7 @@ module datapath(
 			if (count != 0) begin
 				count <= count -1;
 				filled <= 1'b0;
+				fillblank f0(.resetn(resetn), .clk(clk), .fill(1'b0), .position(word), .char(guess), .qout(qout)); 
 				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(word), .char(guess), .qout(qout)); 
 			end
 //fill blank
