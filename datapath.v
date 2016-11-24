@@ -13,7 +13,11 @@ module datapath(
 	wire timecounter;
 	wire count, position, w1;
 	reg dash;
-
+	reg [4:0] rdaddress; // The address we will read from, it will be a loop
+	reg [4:0] wraddress;
+	reg [4:0] guesschar; // The register to save the char that guesser guess
+	reg [4:0] matchaddress; // The address that 
+	reg [4:0] length
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -40,7 +44,6 @@ module datapath(
 			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
 			end
 			
-	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
 	always @ (posedge clk) begin
 		if (resetn) begin
@@ -58,8 +61,12 @@ module datapath(
 		end
 	end
 	
-	reg [4:0] guesschar; // The register to save the char that guesser guess
-	reg [4:0] matchaddress; // The address that 
+	always @(*) begin
+		if (ld_g = 1'b1) begin
+			length = wraddress;
+		end
+	end
+	
 	always @ (posedge clk) begin
 		if (resetn) begin
 			guesschar <= 5'b0;
@@ -87,24 +94,16 @@ module datapath(
 		end
 	end
 	
-	reg [4:0] length
-	always @(*) begin
-		if (ld_g = 1'b1) begin
-			length = wraddress;
-			remain = length;
-		end
-	end
 	
-	reg [4:0] wraddress;	// This also can be treated as the length of the words
+		// This also can be treated as the length of the words
 						// since we write the chars to memory start from 1
 	always @ (posedge writeorread, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
 				wraddress <= 5'd0;
-				remain <= 0;
 			else begin
 				wraddress <= wraddress + 1; // wordlength
-				remain <= wraddress;
+			
 			end
 		end
 	
@@ -173,7 +172,6 @@ module datapath(
 	end
 	end
 	// determine whether to continue or end game; win-lose state
-	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
 			continue <= 1'b0;
@@ -184,10 +182,9 @@ module datapath(
 				continue <= 1'b0;
 				p2score <= p2score + 1;
 			end
-			else if (match || complete) begin
-				remain <= wordcount - count;
+			else begin
 				continue <= 1'b1;
-				
+			end
 			end
 		end
 	end
