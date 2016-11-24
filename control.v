@@ -94,11 +94,14 @@ module control(
 				timecount = 1'b1;
 				writeorread = 1'b1;
 				wren = 1'b1;
+				rden = 1'b1;
 			end
       		S_FILL_BLANK: begin
 				fill = 1'b1;
 				timecount = 1'b1;
 				plot = 1'b1;
+				writeorread = 1'b1;
+				rden = 1'b1;
 			end
 		  	S_DRAW: begin
 				draw = 1'b1;

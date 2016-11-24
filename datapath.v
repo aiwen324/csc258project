@@ -13,8 +13,8 @@ module datapath(
 	wire timecounter;
 	wire count, position, w1;
 	reg dash;
-	reg [4:0] rdaddress; // The address we will read from, it will be a loop
-	reg [4:0] wraddress;
+	reg [4:0] rdaddress; // The address we will read from
+	reg [4:0] wraddress; // The address we will write data to
 	reg [4:0] guesschar; // The register to save the char that guesser guess
 	reg [4:0] matchaddress; // The address that 
 	reg [4:0] length
@@ -26,23 +26,42 @@ module datapath(
 	// This block will write and read the memory
 	always @ (posedge clk) begin
 		if (resetn) begin
-			char <= 0; // the input we will put, it's a single character, it's 5 bits
-			dash <= 1'b0; // dash is the underscore below the every chars
+			dash <= 1'b0; // dash is the underscore below every char
 		end
 		else if (writeorread == 1) begin
-			dualportram d0(.clock(clk), .data(char), .rdaddress(rdaddress), 
-			.rden(compare), .wraddress(wraddress), .wren(wren), .q(word));
-			// compare is the signal to enable read
+			dualportram d0(.clock(clk), .data(inputs), .rdaddress(rdaddress), 
+			.rden(rden), .wraddress(wraddress), .wren(wren), .q(word));
+			// rden is the signal to enable read
 			// wren is the signal to enable write
 			dash <= 1'b1;
-			/*
-			remain <= wordlength;*/
 			end
-
-		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
-								//to tell when to read
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
+	end
+	
+	
+	reg [4:0] inputs;
+	always @ (posedge clk) begin
+		if (resetn) begin
+			inputs <= 0;
+		end
+		else if (ld) begin
+			inputs <= char;
+		end
+		else if (compare) begin
+			inputs <= position;
+		end
+	end
+	
+	
+	reg [4:0] wraddress1;	// This also can be treated as the length of the words
+							// since we write the chars to memory start from 1
+	always @ (posedge writeorread, posedge resetn)
+		begin
+			if (resetn == 1'b1) begin
+				wraddress1 <= 5'd0;
+			else begin
+				wraddress1 <= wraddress1 + 1; // wordlength
 			end
+		end
 			
 
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
@@ -54,7 +73,7 @@ module datapath(
 		end
 		else if (compare == 1'b1) begin
 			if (rdaddress == length) begin
-				rdaddress <= 5'b00001;
+				rdaddress <= 5'b00000;
 				loopend <= 1'b1;
 			end
 			else begin
@@ -62,32 +81,30 @@ module datapath(
 				loopend <= 1'b0;
 			end
 		end
+		else if (fill == 1'b1) begin
+			if (rdaddress != 5'b11111) begin
+				rdaddress <= wraddress2 + count;
 	end
 	
-	always @(*) begin
-		if (ld_g = 1'b1) begin
-			length = wraddress;
-		end
-	end
 	
+	reg [4:0] position;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			guesschar <= 5'b0;
 			count <= 0; // The number of chars in the word; 
+			wraddress2 <= 5'b11111; // We save the memory address to the wraddress2
+			position <= 5'b00000;
 		end
 		else if (compare == 1'b1) begin
 			match <= 1'b0;
-			wraddress <= 5'b11111;
-			char <= 5'b00000;
 			guesschar <= guess; // The 
 			if (guesschar == word) begin
 				count <= count + 1;
-				char <= rdaddress;
-				wraddress <= wraddress - 5'b00001;
+				position <= rdaddress;
+				wraddress2 <= wraddress2 - 5'b00001; 
 				if (loopend == 1'b1) begin
 					if (count != 0) begin
 						match <= 1'b1;
-						char <= 5'b00000;
 					end
 					else begin
 						match <= 1'b0;
@@ -95,29 +112,42 @@ module datapath(
 				end
 			end
 		end
+		else if (fill) begin
+			if (count != 0) begin
+				count <= count -1;
+				filled <= 1'b0;
+				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(word), .char(guess), .qout(qout)); 
+			end
+//fill blank
+			else begin
+			wraddress2 <= 5'b11111;
+			filled <= 1'b1;
+			end
+		end
+		
 	end
 
 	
 	reg [4:0] length;
 	always @(clk) begin
 		if (ld_g = 1'b1) begin
-			length <= wraddress;
+			length <= wraddress1;
 			remain <= length;
 		end
 		else if(loopend == 1'b1) begin
 			remain <= remain - count;
 	end
 		
-	reg [4:0] wraddress;	// This also can be treated as the length of the words
-						// since we write the chars to memory start from 1
-	always @ (posedge writeorread, posedge resetn)
-		begin
-			if (resetn == 1'b1) begin
-				wraddress <= 5'd0;
-			else begin
-				wraddress <= wraddress + 1; // wordlength
-			end
+	
+	
+	always @(*) begin
+		if (ld) begin
+			wraddress = wraddress1;
 		end
+		else if (compare) begin
+			wraddress = wraddress2;
+		end
+	end
 	
 	// compare guesschar with registered char; ouput match and count and match position and draw
 	
@@ -134,9 +164,12 @@ module datapath(
 		assign color = 3'b001; // blue
 		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); 
 		end
+		else if (fill) begin
+			assign color = 3'b010;// green
+		end
 	// draw parts
 		else if (draw) begin
-			assign color = 3'b100;// red
+			color = 3'b100;// red
 			drawparts d0(.part(part), .out(qout));
 		end
 	// wipe all the images
@@ -146,23 +179,6 @@ module datapath(
 		end
 	end
 	
-	// output filled
-	always@(posedge clk) begin
-		if (fill) begin
-			if (count != 0) begin
-				count <= count -1;
-				filled <= 1'b0;
-			end
-//fill blank
-			else if (fill) begin
-				assign color = 3'b010;// green
-				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
-			end
-			else begin
-				filled <= 1'b1;
-			end
-		end
-	end
 	// draw parts/endgame and register scores
 	reg [2:0] part;
 	always@(posedge clk, negedge resetn) begin
