@@ -2,15 +2,15 @@ module control(
 	input clk,
 	input resetn,
 	input load, endinput, start, wipe, try // from keyboard
-	input timeout, finish, complete, continue, graph_loaded, match,// from datapath
-	output reg ld, timecount, compare, fill, draw, over, ld_g, // to datapath
+	input timeout, finish, complete, continuous, graph_loaded, match,// from datapath
+	output reg writeorread, timecount, compare, fill, draw, over, ld_g, wren // to datapath
 	output reg plot, // writeEn to vga to change color
 	output reg[3:0] part, p2score, p1score
 	);
 	
 	reg [4:0] remain;
 	reg [3:0] current_state, next_state;
-	reg continue, complete;
+	reg continuous, complete;
 
 	localparam S_LOAD_C = 4'b0000, // load
 		  S_WAIT_C = 4'b0001,   // end, inside counter
@@ -51,7 +51,7 @@ module control(
 					next_state = match ? S_FILL_BLANK : S_DRAW ; // comparator; output match and count (misses)
 				end
 			S_FILL_BLANK: next_state = filled ? S_FILL_BLANK_WAIT: S_FILL_BLANK; //output cont; fill char
-			S_FILL_BLANK_WAIT: next_state = continue? S_LOAD_G : S_WIN;  //
+			S_FILL_BLANK_WAIT: next_state = continuous? S_LOAD_G : S_WIN;  //
 			S_DRAW: next_state = finish ? S_DRAW_WAIT : S_DRAW; // draw parts
 			S_DRAW_WAIT: next_state = complete ? S_GRAPHOUT : S_LOAD_G; // finish drawing
 			S_WIN: next_state = wipe? S_LOAD_C : S_WIN; // Use "Delete" to control the restart of game
@@ -64,20 +64,24 @@ module control(
 	always @(*)
 	begin: enable_signals
 		// By default make all out signals 0
-		ld = 1'b0;
+		writeorread = 1'b0;
 		timecount = 1'b0;
 		compare = 1'b0;
 		fill = 1'b0;
 		draw = 1'b0;
 		over = 1'b0;
 		ld_g = 1'b0;
+		rden = 1'b0;
+		wren = 1'b0;
 		plot = 1'b0;
 
 		case(current_state)
 			S_LOAD_C: begin
+				writeorread = 1'b1; 
+				wren = 1'b1;
 				ld = 1'b1; 
 				plot = 1'b1;
-				end	
+			end	
 	        S_LOAD_GRAPH: begin
 				ld_g = 1'b1;
 				plot = 1'b1;
@@ -88,6 +92,8 @@ module control(
 			S_LOAD_G: begin
 				compare = 1'b1;
 				timecount = 1'b1;
+				writeorread = 1'b1;
+				wren = 1'b1;
 			end
       		S_FILL_BLANK: begin
 				fill = 1'b1;
