@@ -53,8 +53,6 @@ module datapath(
 			// compare is the signal to enable read
 			// wren is the signal to enable write
 			dash <= 1'b1;
-			/*
-			remain <= wordlength;*/
 			end
 			
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
@@ -108,6 +106,7 @@ module datapath(
 	always @(*) begin
 		if (ld_g = 1'b1) begin
 			length = wraddress;
+			remain = length;
 		end
 	end
 	
