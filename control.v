@@ -74,6 +74,7 @@ module control(
 		rden = 1'b0;
 		wren = 1'b0;
 		plot = 1'b0;
+		ld = 1'b0;
 
 		case(current_state)
 			S_LOAD_C: begin

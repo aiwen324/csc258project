@@ -36,7 +36,7 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 	
 	reg [4:0] wraddress1;	// This also can be treated as the length of the words
 							// since we write the chars to memory start from 1
-	always @ (posedge writeorread, posedge resetn)
+	always @ (posedge ld, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
 				wraddress1 <= 5'd0;
