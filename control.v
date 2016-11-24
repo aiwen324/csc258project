@@ -3,7 +3,7 @@ module control(
 	input resetn,
 	input load, endinput, start, timeout, wipe, finish, complete, continue, graph_loaded, try
 	input match// feedback from datapath
-	output reg ld, timecount, compare, fill, draw, over, ld_g,
+	output reg writeorread, timecount, compare, fill, draw, over, ld_g, wren,
 	output reg[3:0] part, p2score, p1score
 	);
 	
@@ -63,18 +63,21 @@ module control(
 	always @(*)
 	begin: enable_signals
 		// By default make all out signals 0
-		ld = 1'b0;
+		writeorread = 1'b0;
 		timecount = 1'b0;
 		compare = 1'b0;
 		fill = 1'b0;
 		draw = 1'b0;
 		over = 1'b0;
 		ld_g = 1'b0;
+		rden = 1'b0;
+		wren = 1'b0;
 		
 
 		case(current_state)
 			S_LOAD_C: begin
-				ld = 1'b1; 
+				writeorread = 1'b1; 
+				wren = 1'b1;
 				end	
 	        S_LOAD_GRAPH: begin
 				ld_g = 1'b1;
@@ -85,6 +88,8 @@ module control(
 			S_LOAD_G: begin
 				compare = 1'b1;
 				timecount = 1'b1;
+				writeorread = 1'b1;
+				wren = 1'b1;
 			end
       		S_FILL_BLANK: begin
 				fill = 1'b1;

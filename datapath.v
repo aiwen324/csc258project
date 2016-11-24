@@ -42,33 +42,86 @@ module datapath(
 	wire counter4_clear;
 	localparam x1 = 8'd100, y2 = 7'd78;
 	
+	// This block will write and read the memory
 	always @ (posedge clk) begin
 		if (resetn) begin
 			char <= 0; // the input we will put, it's a single character, it's 5 bits
 			dash <= 1'b0; // dash is the underscore below the every chars
 		end
-		else if (ld == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(l'b1), .q(word));
+		else if (writeorread == 1) begin
+			dualportram d0(.clock(clk), .data(char), .rdaddress(rdaddress), 
+			.rden(compare), .wraddress(wraddress), .wren(wren), .q(word));
+			// compare is the signal to enable read
+			// wren is the signal to enable write
 			dash <= 1'b1;
 			/*
 			remain <= wordlength;*/
 			end
-		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
-								//to tell when to read
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
-		end
-		
+			
+	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
-	reg [4:0] address;	// This also can be treated as the length of the words
+	always @ (posedge clk) begin
+		if (resetn) begin
+			rdaddress <= 5'b0;
+			loopend <= 1'b0;
+		end
+		else if (compare == 1'b1) begin
+			if (rdaddress == length) begin
+				rdaddress <= 5'b00001;
+				loopend <= 1'b1;
+			end
+			else begin
+				rdaddress <= rdaddress + 1;
+			end
+		end
+	end
+	
+	reg [4:0] guesschar; // The register to save the char that guesser guess
+	reg [4:0] matchaddress; // The address that 
+	always @ (posedge clk) begin
+		if (resetn) begin
+			guesschar <= 5'b0;
+			count <= 0; // The number of chars in the word; 
+		end
+		else if (compare == 1'b1) begin
+			match <= 1'b0;
+			wraddress <= 5'b11111;
+			char <= 5'b00000;
+			guesschar <= guess; // The 
+			if (guesschar == word) begin
+				count <= count + 1;
+				char <= rdaddress;
+				wraddress <= wraddress - 5'b00001;
+				if (loopend == 1'b1) begin
+					if (count != 0) begin
+						match = 1'b1;
+						char = 5'b00000;
+					end
+					else begin
+						match = 1'b0;
+					end
+				end
+			end
+		end
+	end
+	
+	reg [4:0] length
+	always @(*) begin
+		if (ld_g = 1'b1) begin
+			length = wraddress;
+		end
+	end
+	
+	reg [4:0] wraddress;	// This also can be treated as the length of the words
 						// since we write the chars to memory start from 1
-	always @ (posedge ld, posedge resetn)
+	always @ (posedge writeorread, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
-				address <= 5'd0;
+				wraddress <= 5'd0;
 				remain <= 0;
 			else begin
-				address <= address + 1; // wordlength
-				remain <= address
+				wraddress <= wraddress + 1; // wordlength
+				remain <= wraddress;
 			end
 		end
 	// draw dashes
