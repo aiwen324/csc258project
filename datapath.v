@@ -9,24 +9,16 @@ module datapath(
 	output reg [14:0] qout, // to vga
 	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
-<<<<<<< HEAD
+
 
 	wire timecounter;
 	wire count, position, w1;
-=======
-	wire timecounter;
->>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
+	reg dash;
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
 	end
-	
-		
-	
 	// registers char
-	
-	reg dash;
-	
 	// This block will write and read the memory
 	always @ (posedge clk) begin
 		if (resetn) begin
@@ -42,15 +34,11 @@ module datapath(
 			/*
 			remain <= wordlength;*/
 			end
-<<<<<<< HEAD
-		else begin
-			dansh <= 1'b0;
-			end
+
 		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
 								//to tell when to read
 			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
-=======
-			
+
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
 	always @ (posedge clk) begin
@@ -66,7 +54,6 @@ module datapath(
 			else begin
 				rdaddress <= rdaddress + 1;
 			end
->>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
 		end
 	end
 	
@@ -88,11 +75,11 @@ module datapath(
 				wraddress <= wraddress - 5'b00001;
 				if (loopend == 1'b1) begin
 					if (count != 0) begin
-						match = 1'b1;
-						char = 5'b00000;
+						match <= 1'b1;
+						char <= 5'b00000;
 					end
 					else begin
-						match = 1'b0;
+						match <= 1'b0;
 					end
 				end
 			end
@@ -103,6 +90,7 @@ module datapath(
 	always @(*) begin
 		if (ld_g = 1'b1) begin
 			length = wraddress;
+
 		end
 	end
 	
@@ -195,7 +183,7 @@ module datapath(
 				continue <= 1'b0;
 				p2score <= p2score + 1;
 			end
-			else if (match) begin
+			else if (match || complete) begin
 				remain <= wordcount - count;
 				continue <= 1'b1;
 				
@@ -210,8 +198,7 @@ module datapath(
 				p1score <= p1score + 1;		
 		end
 	end
-	
-	
+
 	// display
 	Hexdecoder h2(p2score[3], p2score[2], p2score[1], p2score[0], .HEX(HEX0));
 	Hexdecoder h1(p1score[3], p1score[2], p1score[1], p1score[0], .HEX(HEX1));
@@ -250,7 +237,7 @@ endmodule
 module load_graph(
 	input clk, resetn, 
 	output reg graph_loaded,
-	output reg [14:0] qout;
+	output reg [14:0] qout);
 	
 	reg [1:0] counter1; reg [5:0] counter2; reg[4:0] counter3; reg [3:0] counter4; reg [6:0] counter5;
 	wire counter1_clear, counter2_clear, counter3_clear, counter4_clear, counter5_clear, en0, en1, en2, en3;
@@ -585,20 +572,3 @@ module drawparts(
 			end
 	end
 endmodule
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
