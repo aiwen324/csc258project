@@ -5,11 +5,11 @@ module datapath(
 	input ld, timecount, compare, fill, draw, over, ld_g,// from control
 	output reg [2:0] color,
 	output reg word, match, finish, graph_loaded, timeout,// to control
-	output reg [6:0] timecounter, // to vga / hex
-	output reg [15:0] qout, // to vga
-	output [6:0] HEX0, HEX1
+	// output reg [6:0] timecounter, // to vga / hex
+	output reg [14:0] qout, // to vga
+	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
-
+	wire timecounter;
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -36,11 +36,10 @@ module datapath(
 	
 	// registers char
 	reg dash;
-	reg [39：0] wordinput;
+	reg [39：0] word;
 	reg [4:0] wordcount, remain;
-	reg [3:0] counter4;
-	wire counter4_clear;
-	localparam x1 = 8'd100, y2 = 7'd78;
+	
+	
 	
 	// This block will write and read the memory
 	always @ (posedge clk) begin
@@ -124,12 +123,23 @@ module datapath(
 				remain <= wraddress;
 			end
 		end
+	// need a mux here
 	// draw dashes
-	drawdash d1(.dash(dash), .resetn(resetn), .clk(clk), .qout(qout));
+	always @(*) begin
+		if (dash) begin
+		drawdash d1(.resetn(resetn), .clk(clk), .qout(qout)); end
 	// load graph
-	load_graph l0(.clk(clk), .resetn(resetn), .ld_g(ld_g), .qout(qout));
-	// compare guesschar with registered char; ouput match and count and match position
-	wire count, position;
+		else if (ld_g) begin
+		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); end
+	// compare guesschar with registered char; ouput match and count and match position and draw
+	
+	// wipe all the images
+		else if (over) begin
+		clear c0(.resetn(resetn), .clk(clk),.clearout(qout)); end
+		else if (fill) begin
+			
+	end
+	wire count, position, w1;
 	// fill blank
 	always@(posedge clk) begin
 		
@@ -137,7 +147,10 @@ module datapath(
 			if (count != 0) begin
 				count <= count -1;
 				filled <= 1'b0;
-				fillblank f0(.position(position), draw the character);
+				fillblank f0(.position(position), .qout(w1).char(char),.clk(clk), .resetn(resetn)// read
+	input ld, // write(shift register)
+	output match, filled,
+	output [15:0] qout;);
 			end
 			else  begin
 				filled <= 1'b1;
@@ -156,8 +169,8 @@ module datapath(
 				complete <= 1'b1;
 				p1score <= p1score + 1;
 			end
-			else begin
-				drawparts d0(.part(part), .draw(draw), .out(qout));
+			else if (draw) begin
+				drawparts d0(.part(part), .out(qout));
 				part <= part + 1;
 				complete <= 1'b0;
 			end
@@ -192,16 +205,14 @@ module datapath(
 		end
 	end
 	
-	// wipe all the images
-	clear c0(.over(over) .resetn(resetn), .clk(clk),.clearout(qout));
+	
 	// display
 	Hexdecoder h2(p2score[3], p2score[2], p2score[1], p2score[0], .HEX(HEX0));
 	Hexdecoder h1(p1score[3], p1score[2], p1score[1], p1score[0], .HEX(HEX1));
-	
 endmodule
 module drawdash(
-	input dash, resetn, clk,
-	output reg [15:0] qout
+	input resetn, clk,
+	output reg [14:0] qout
 	);
 	assign counter4_clear = (counter4 == 4'b1010); //+10
 	// draw dashes	
@@ -210,8 +221,7 @@ module drawdash(
 			counter4 <= 0;
 		//	finish <= 1’b0;
 		end
-		else if (dash) begin
-			if (counter4_clear) begin
+		else if (counter4_clear) begin
 				counter4 <= 0;
 		//		finish <= 1’b1;
 			end
@@ -232,9 +242,9 @@ module drawdash(
 	end
 endmodule
 module load_graph(
-	input clk, resetn, ld_g, 
+	input clk, resetn, 
 	output reg graph_loaded,
-	output reg [15:0] qout;
+	output reg [14:0] qout;
 	
 	reg [1:0] counter1; reg [5:0] counter2; reg[4:0] counter3; reg [3:0] counter4; reg [6:0] counter5;
 	wire counter1_clear, counter2_clear, counter3_clear, counter4_clear, counter5_clear, en0, en1, en2, en3;
@@ -327,16 +337,6 @@ module load_graph(
 			end
 		end
 	end
-	
-	always @(*) begin
-		//x1out <= x1+counter1[];
-		//y1out <= y1+counter2[];
-		//x2out <= x2+counter2[];
-		//y2out <= y2+counter2[];
-		q3out = {x2+counter1,y1+counter4};
-		//x3out <= x3+counter3[];
-		//y3out <= y3+counter3[];
-	end
 endmodule
 module HexDecoder(d, c, b, a, HEX);
 
@@ -360,7 +360,7 @@ module HexDecoder(d, c, b, a, HEX);
 endmodule
 
 module clear(
-	input over, clk, resetn,
+	input clk, resetn,
 	output reg [15:0] clearout
 	);
 	reg [7:0] xCounter; reg [6:0] yCounter;
@@ -372,11 +372,10 @@ module clear(
 	begin
 		if (!resetn)
 			xCounter <= 10'd0;
-		else if(over) begin 
-			if (xCounter_clear) begin
+		else if (xCounter_clear) begin
 				xCounter <= 10'd0;
 			end
-			else begin
+		else begin
 			xCounter <= xCounter + 1'b1;
 			end
 		end
@@ -399,7 +398,7 @@ module clear(
 endmodule
 
 module drawparts(
-	input draw, resetn, clk,
+	input resetn, clk,
 	input [2:0] part,
 	output reg finish,
 	output reg [15:0] drawout
@@ -426,8 +425,8 @@ module drawparts(
 		if (resetn) begin
 			drawout <= 0;
 			finish <= 0;
-		else
-			case(draw)
+		else begin
+			case(part) begin
 				3'b0000: 
 					en4 <= 1'b1;
 					drawout<= circle;// circle
@@ -454,6 +453,7 @@ module drawparts(
 					end
 				default: drawout <= 0;
 			endcase
+		end
 	end
 	reg [15:0] circle; // head
 	always @(posedge clk) begin
@@ -578,15 +578,7 @@ module drawparts(
 				counter3 <= counter3 + 1;
 			end
 	end
-	
-	
 endmodule
-
-module fillblank(
-	input position,
-	output [15:0] out);
-endmodule
-	
 	
 	
 	
