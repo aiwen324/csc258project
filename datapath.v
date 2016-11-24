@@ -13,7 +13,11 @@ module datapath(
 	wire timecounter;
 	wire count, position, w1;
 	reg dash;
-
+	reg [4:0] rdaddress; // The address we will read from, it will be a loop
+	reg [4:0] wraddress;
+	reg [4:0] guesschar; // The register to save the char that guesser guess
+	reg [4:0] matchaddress; // The address that 
+	reg [4:0] length
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -40,6 +44,7 @@ module datapath(
 			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
 			end
 			
+
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	reg loopend;
 	always @ (posedge clk) begin
@@ -54,12 +59,17 @@ module datapath(
 			end
 			else begin
 				rdaddress <= rdaddress + 1;
+				loopend <= 1'b0;
 			end
 		end
 	end
 	
-	reg [4:0] guesschar; // The register to save the char that guesser guess
-	reg [4:0] matchaddress; // The address that 
+	always @(*) begin
+		if (ld_g = 1'b1) begin
+			length = wraddress;
+		end
+	end
+	
 	always @ (posedge clk) begin
 		if (resetn) begin
 			guesschar <= 5'b0;
@@ -97,15 +107,13 @@ module datapath(
 		else if(loopend == 1'b1) begin
 			remain <= remain - count;
 	end
-	
-	
+		
 	reg [4:0] wraddress;	// This also can be treated as the length of the words
 						// since we write the chars to memory start from 1
 	always @ (posedge writeorread, posedge resetn)
 		begin
 			if (resetn == 1'b1) begin
 				wraddress <= 5'd0;
-				remain <= 0;
 			else begin
 				wraddress <= wraddress + 1; // wordlength
 			end
@@ -126,12 +134,6 @@ module datapath(
 		assign color = 3'b001; // blue
 		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); 
 		end
-	
-	//fill blank
-		else if (fill) begin
-		assign color = 3'b010;// green
-		fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
-		end
 	// draw parts
 		else if (draw) begin
 			assign color = 3'b100;// red
@@ -151,9 +153,15 @@ module datapath(
 				count <= count -1;
 				filled <= 1'b0;
 			end
-		else  begin
-			filled <= 1'b1;
+//fill blank
+			else if (fill) begin
+				assign color = 3'b010;// green
+				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
 			end
+			else begin
+				filled <= 1'b1;
+			end
+		end
 	end
 	// draw parts/endgame and register scores
 	reg [2:0] part;
@@ -176,7 +184,6 @@ module datapath(
 	end
 	end
 	// determine whether to continue or end game; win-lose state
-	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
 			continuous <= 1'b0;
@@ -189,7 +196,6 @@ module datapath(
 			end
 			else begin
 				continuous <= 1'b1;
-				
 			end
 		end
 	end
