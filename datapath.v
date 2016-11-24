@@ -9,13 +9,8 @@ module datapath(
 	output reg [14:0] qout, // to vga
 	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
-<<<<<<< HEAD
-
 	wire timecounter;
 	wire count, position, w1;
-=======
-	wire timecounter;
->>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -40,14 +35,6 @@ module datapath(
 			// wren is the signal to enable write
 			dash <= 1'b1;
 			end
-<<<<<<< HEAD
-		else begin
-			dansh <= 1'b0;
-			end
-		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
-								//to tell when to read
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
-=======
 			
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
@@ -64,7 +51,6 @@ module datapath(
 			else begin
 				rdaddress <= rdaddress + 1;
 			end
->>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
 		end
 	end
 	
