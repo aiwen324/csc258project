@@ -64,7 +64,6 @@ module datapath(
 		end
 			
 
-	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	reg loopend;
 	always @ (posedge clk) begin
 		if (resetn) begin
@@ -72,7 +71,7 @@ module datapath(
 			loopend <= 1'b0;
 		end
 		else if (compare == 1'b1) begin
-			if (rdaddress == length) begin
+			if (rdaddress >= length) begin
 				rdaddress <= 5'b00000;
 				loopend <= 1'b1;
 			end
@@ -82,7 +81,6 @@ module datapath(
 			end
 		end
 		else if (fill == 1'b1) begin
-			if (rdaddress != 5'b11111) begin
 				rdaddress <= wraddress2 + count;
 	end
 	
@@ -97,7 +95,7 @@ module datapath(
 		end
 		else if (compare == 1'b1) begin
 			match <= 1'b0;
-			guesschar <= guess; // The 
+			guesschar <= guess;
 			if (guesschar == word) begin
 				count <= count + 1;
 				position <= rdaddress;
