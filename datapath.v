@@ -41,7 +41,7 @@ module datapath(
 			end
 			
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
-	
+	reg loopend;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			rdaddress <= 5'b0;
@@ -86,14 +86,18 @@ module datapath(
 			end
 		end
 	end
+
 	
-	reg [4:0] length
-	always @(*) begin
+	reg [4:0] length;
+	always @(clk) begin
 		if (ld_g = 1'b1) begin
-			length = wraddress;
-			remain = length;
+			length <= wraddress;
+			remain <= length;
 		end
+		else if(loopend == 1'b1) begin
+			remain <= remain - count;
 	end
+	
 	
 	reg [4:0] wraddress;	// This also can be treated as the length of the words
 						// since we write the chars to memory start from 1
@@ -104,7 +108,6 @@ module datapath(
 				remain <= 0;
 			else begin
 				wraddress <= wraddress + 1; // wordlength
-				remain <= wraddress;
 			end
 		end
 	
@@ -176,17 +179,16 @@ module datapath(
 	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
-			continue <= 1'b0;
+			continuous <= 1'b0;
 			p2score <= 0;
 		end
 		else begin
 			if (remain == 0) begin
-				continue <= 1'b0;
+				continuous <= 1'b0;
 				p2score <= p2score + 1;
 			end
-			else if (match || complete) begin
-				remain <= wordcount - count;
-				continue <= 1'b1;
+			else begin
+				continuous <= 1'b1;
 				
 			end
 		end
