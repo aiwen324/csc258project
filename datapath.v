@@ -2,7 +2,7 @@ module datapath(
 	input clk,
 	input resetn,
 	input [4:0] char, guess// char, guess from keyboard
-	input ld, writeorread, timecount, compare, fill, draw, over, ld_g,// from control
+	input ld, writeorread, timecount, compare, fill, draw, over, ld_g, wren, rden// from control
 	output reg [2:0] color,
 	output reg word, match, finish, graph_loaded, timeout,// to control
 	// output reg [6:0] timecounter, // to vga / hex
@@ -11,7 +11,7 @@ module datapath(
 	);
 
 	wire hour, minute, second;
-	reg count, wren, rden;
+	reg count;
 	reg dash;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress; // The address we will write data to
