@@ -9,7 +9,11 @@ module datapath(
 	output reg [14:0] qout, // to vga
 	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
+<<<<<<< HEAD
 	wire timecounter;
+=======
+
+>>>>>>> 050b447c2e059a8a5e990af0335b276624fa2239
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -47,14 +51,20 @@ module datapath(
 			dash <= 1'b0; // dash is the underscore below the every chars
 		end
 		else if (ld == 1) begin
-			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(ld), .q(word));
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(l'b1), .q(word));
 			dash <= 1'b1;
 			/*
 			remain <= wordlength;*/
 			end
+<<<<<<< HEAD
 		else begin
 			dansh <= 1'b0;
 			end
+=======
+		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
+								//to tell when to read
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
+>>>>>>> 050b447c2e059a8a5e990af0335b276624fa2239
 		end
 		
 	
