@@ -2,16 +2,16 @@ module datapath(
 	input clk,
 	input resetn,
 	input [4:0] char, guess// char, guess from keyboard
-	input ld, timecount, compare, fill, draw, over, ld_g,// from control
+	input ld, writeorread, timecount, compare, fill, draw, over, ld_g,// from control
 	output reg [2:0] color,
 	output reg word, match, finish, graph_loaded, timeout,// to control
 	// output reg [6:0] timecounter, // to vga / hex
 	output reg [14:0] qout, // to vga
-	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
+	output [6:0] HEX0, HEX1, HEX3, HEX4, HEX5
 	);
 
-	wire timecounter;
-	wire count, position, w1;
+	wire hour, minute, second;
+	reg count, wren, rden;
 	reg dash;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress; // The address we will write data to
@@ -20,15 +20,27 @@ module datapath(
 	reg [4:0] length
 	// timecounter
 	always@(posedge timecount) begin
-		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
+		if (resetn) begin
+			HEX3 <= 0;
+			HEX4 <= 0;
+			HEX5 <= 0;
+		end
+		else begin
+		displaytime d0(.clk(clk), .reset_n(resetn) .outm(minute), .outh(hour), outs(second).fail(timeout));
+		Hexdecoder h3(hour[3], hour[2], hour[1], hour[0], .HEX(HEX5));
+		Hexdecoder h4(minute[3], minute[2], minute[1], minute[0], .HEX(HEX4));
+		Hexdecoder h5(second[3], second[2], second[1], second[0], .HEX(HEX3));
+		end
 	end
 	// registers char
 	// This block will write and read the memory
+	
+	
 	always @ (posedge clk) begin
 		if (resetn) begin
 			dash <= 1'b0; // dash is the underscore below every char
 		end
-		else if (writeorread == 1) begin
+		else if (writeorread) begin
 			dualportram d0(.clock(clk), .data(inputs), .rdaddress(rdaddress), 
 			.rden(rden), .wraddress(wraddress), .wren(wren), .q(word));
 			// rden is the signal to enable read
@@ -51,12 +63,22 @@ module datapath(
 		end
 	end
 	
+		
+	
+	always @(posedge clk) begin
+		if (ld) begin
+			wraddress <= wraddress1;
+		end
+		else if (compare) begin
+			wraddress <= wraddress2;
+		end
+	end
 	
 	reg [4:0] wraddress1;	// This also can be treated as the length of the words
 							// since we write the chars to memory start from 1
-	always @ (posedge writeorread, posedge resetn)
+	always @ (posedge ld)
 		begin
-			if (resetn == 1'b1) begin
+			if (resetn) begin
 				wraddress1 <= 5'd0;
 			else begin
 				wraddress1 <= wraddress1 + 1; // wordlength
@@ -70,7 +92,7 @@ module datapath(
 			rdaddress <= 5'b0;
 			loopend <= 1'b0;
 		end
-		else if (compare == 1'b1) begin
+		else if (compare) begin
 			if (rdaddress >= length) begin
 				rdaddress <= 5'b00000;
 				loopend <= 1'b1;
@@ -80,8 +102,9 @@ module datapath(
 				loopend <= 1'b0;
 			end
 		end
-		else if (fill == 1'b1) begin
+		else if (fill) begin
 				rdaddress <= wraddress2 + count;
+		end
 	end
 	
 	
@@ -93,7 +116,7 @@ module datapath(
 			wraddress2 <= 5'b11111; // We save the memory address to the wraddress2
 			position <= 5'b00000;
 		end
-		else if (compare == 1'b1) begin
+		else if (compare) begin
 			match <= 1'b0;
 			guesschar <= guess;
 			if (guesschar == word) begin
@@ -104,10 +127,10 @@ module datapath(
 					if (count != 0) begin
 						match <= 1'b1;
 					end
-					else begin
-						match <= 1'b0;
-					end
 				end
+			end
+			else begin
+				match <= 1'b0;
 			end
 		end
 		else if (fill) begin
@@ -127,7 +150,7 @@ module datapath(
 
 	
 	reg [4:0] length;
-	always @(clk) begin
+	always @(posedge clk) begin
 		if (ld_g = 1'b1) begin
 			length <= wraddress1;
 			remain <= length;
@@ -136,50 +159,45 @@ module datapath(
 			remain <= remain - count;
 	end
 		
-	
-	
-	always @(*) begin
-		if (ld) begin
-			wraddress = wraddress1;
-		end
-		else if (compare) begin
-			wraddress = wraddress2;
-		end
-	end
-	
 	// compare guesschar with registered char; ouput match and count and match position and draw
 	
-	// draw dashes
-	always @(*) begin
-		if (ld) begin
-			assign color = 3'b111;// white
+	// reg qout
+	always @(posedge clk) begin
+		if (resetn) begin
+			color <= 0;
+			qout <= 0;
 		end
-		if (dash) begin
+		else begin
+		if (ld) begin
+			color <= 3'b111;// white
+		end
+		if (dash) begin// draw dashes
 		drawdash d1(.resetn(resetn), .clk(clk), .qout(qout)); 
 		end
 	// load graph
 		else if (ld_g) begin
-		assign color = 3'b001; // blue
+		color <= 3'b001; // blue
 		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); 
 		end
 		else if (fill) begin
-			assign color = 3'b010;// green
+			color <= 3'b010;// green
 		end
 	// draw parts
 		else if (draw) begin
-			color = 3'b100;// red
+			color <= 3'b100;// red
 			drawparts d0(.part(part), .out(qout));
 		end
 	// wipe all the images
 		else if (over) begin
-		assign color = 3'b000;// black
+		color <= 3'b000;// black
 		clear c0(.resetn(resetn), .clk(clk),.clearout(qout)); 
+		end
 		end
 	end
 	
 	// draw parts/endgame and register scores
 	reg [2:0] part;
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			part <= 0; 
 			complete <= 1'b0;
@@ -198,7 +216,7 @@ module datapath(
 	end
 	end
 	// determine whether to continue or end game; win-lose state
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			continuous <= 1'b0;
 			p2score <= 0;
@@ -214,7 +232,7 @@ module datapath(
 		end
 	end
 	
-	always@(posedge clk, negedge resetn) begin
+	always@(posedge clk) begin
 		if (resetn) begin
 			p1score <= 0;
 		else if (timeout == 1'b1) begin
@@ -223,8 +241,16 @@ module datapath(
 	end
 
 	// display
-	Hexdecoder h2(p2score[3], p2score[2], p2score[1], p2score[0], .HEX(HEX0));
-	Hexdecoder h1(p1score[3], p1score[2], p1score[1], p1score[0], .HEX(HEX1));
+	always @(*) begin
+		if (resetn) begin
+			HEX0 <= 0;
+			HEX1 <= 0;
+		end
+		else begin
+			Hexdecoder h2(p2score[3], p2score[2], p2score[1], p2score[0], .HEX(HEX0));
+			Hexdecoder h1(p1score[3], p1score[2], p1score[1], p1score[0], .HEX(HEX1));
+		end
+	end
 endmodule
 module drawdash(
 	input resetn, clk,
@@ -381,8 +407,8 @@ module clear(
 	);
 	reg [7:0] xCounter; reg [6:0] yCounter;
 	wire xCounter_clear, yCounter_clear;
-	assign xCounter_clear = (xCounter == 8'b10100000);
-	assign yCounter_clear = (yCounter == 7'b1111000); 
+	assign xCounter_clear = (xCounter == 8'b10011111);
+	assign yCounter_clear = (yCounter == 7'b1110111); 
 	
 	always @(posedge clk, negedge resetn)
 	begin
@@ -406,7 +432,6 @@ module clear(
 		else if (xCounter_clear)		//Increment when x counter resets
 			yCounter <= yCounter + 1'b1;
 	end
-	
 	
 	always @(*) begin
 		clearout =	{xCounter, yCounter};
@@ -514,7 +539,7 @@ module drawparts(
 				circle<= {x4+counter5, y4+counter6};
 				counter6 <= counter6+1;
 			end
-		
+		end
 		else if (en6) begin
 			if (counter6_clear) begin
 				circle<= {x5+counter6, y5+counter5};
@@ -532,6 +557,7 @@ module drawparts(
 				circle<= {x5+counter6, y5+counter5};
 				counter6 <= counter6+1;
 			end
+		end
 		else if (en7) begin
 			if (counter3_clear) begin
 				circle<= {x6+counter3, y6+counter4};
@@ -578,6 +604,7 @@ module drawparts(
 		 	else begin
 				counter2 <= counter2 + 1;
 			end
+		end
 	end
 	// +10 diagonal(+10, +10)
 	always @(posedge clk) begin
@@ -593,5 +620,6 @@ module drawparts(
 		 	else begin
 				counter3 <= counter3 + 1;
 			end
+		end
 	end
 endmodule
