@@ -122,12 +122,6 @@ module datapath(
 		assign color = 3'b001; // blue
 		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); 
 		end
-	
-	//fill blank
-		else if (fill) begin
-		assign color = 3'b010;// green
-		fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
-		end
 	// draw parts
 		else if (draw) begin
 			assign color = 3'b100;// red
@@ -147,9 +141,15 @@ module datapath(
 				count <= count -1;
 				filled <= 1'b0;
 			end
-		else  begin
-			filled <= 1'b1;
+//fill blank
+			else if (fill) begin
+				assign color = 3'b010;// green
+				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
 			end
+			else begin
+				filled <= 1'b1;
+			end
+		end
 	end
 	// draw parts/endgame and register scores
 	reg [2:0] part;
