@@ -10,10 +10,10 @@ module datapath(
 	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
 
-
 	wire timecounter;
 	wire count, position, w1;
 	reg dash;
+
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
@@ -38,7 +38,8 @@ module datapath(
 		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
 								//to tell when to read
 			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
-
+			end
+			
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
 	always @ (posedge clk) begin
@@ -90,7 +91,7 @@ module datapath(
 	always @(*) begin
 		if (ld_g = 1'b1) begin
 			length = wraddress;
-
+			remain = length;
 		end
 	end
 	
