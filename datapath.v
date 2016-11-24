@@ -9,37 +9,23 @@ module datapath(
 	output reg [14:0] qout, // to vga
 	output [6:0] HEX0, HEX1, HEX2, HEX3, HEX4
 	);
+<<<<<<< HEAD
+
 	wire timecounter;
+	wire count, position, w1;
+=======
+	wire timecounter;
+>>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
 	// timecounter
 	always@(posedge timecount) begin
 		displaytime d0(.clk(clk), .reset_n(resetn) .out(timecounter), .fail(timeout));
 	end
-	// color to vga
-	always@(*) begin
-		if (ld) begin
-			assign color = 3'b111;// white
-		end
-		else if (ld_g) begin
-			assign color = 3'b001; // blue
-		end
-		else if (draw) begin
-			assign color = 3'b100;// red
-		end
-		else if (fill) begin
-			assign color = 3'b010;// green
-		end
-		else if (over) begin
-			assign color = 3'b000;// black
-		end
-	end
+	
 		
 	
 	// registers char
+	
 	reg dash;
-	reg [39：0] word;
-	reg [4:0] wordcount, remain;
-	
-	
 	
 	// This block will write and read the memory
 	always @ (posedge clk) begin
@@ -54,6 +40,14 @@ module datapath(
 			// wren is the signal to enable write
 			dash <= 1'b1;
 			end
+<<<<<<< HEAD
+		else begin
+			dansh <= 1'b0;
+			end
+		else if (rd == 1) begin //read == 1, we will read from memory, we need a signal
+								//to tell when to read
+			ram32v5 r0(.address(address), .clk(clk), .data(char), .wren(1'b0), .q(word));
+=======
 			
 	reg [4:0] rdaddress; // The address we will read from, it will be a loop
 	
@@ -70,6 +64,7 @@ module datapath(
 			else begin
 				rdaddress <= rdaddress + 1;
 			end
+>>>>>>> 194bdd8ca6ae9ffee27afc76a9112675e26a10a4
 		end
 	end
 	
@@ -122,38 +117,50 @@ module datapath(
 				remain <= wraddress;
 			end
 		end
-	// need a mux here
-	// draw dashes
-	always @(*) begin
-		if (dash) begin
-		drawdash d1(.resetn(resetn), .clk(clk), .qout(qout)); end
-	// load graph
-		else if (ld_g) begin
-		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); end
+	
 	// compare guesschar with registered char; ouput match and count and match position and draw
 	
+	// draw dashes
+	always @(*) begin
+		if (ld) begin
+			assign color = 3'b111;// white
+		end
+		if (dash) begin
+		drawdash d1(.resetn(resetn), .clk(clk), .qout(qout)); 
+		end
+	// load graph
+		else if (ld_g) begin
+		assign color = 3'b001; // blue
+		load_graph l0(.clk(clk), .resetn(resetn), .qout(qout)); 
+		end
+	
+	//fill blank
+		else if (fill) begin
+		assign color = 3'b010;// green
+		fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(position), .char(guess), .qout(qout)); 
+		end
+	// draw parts
+		else if (draw) begin
+			assign color = 3'b100;// red
+			drawparts d0(.part(part), .out(qout));
+		end
 	// wipe all the images
 		else if (over) begin
-		clear c0(.resetn(resetn), .clk(clk),.clearout(qout)); end
-		else if (fill) begin
-			
+		assign color = 3'b000;// black
+		clear c0(.resetn(resetn), .clk(clk),.clearout(qout)); 
+		end
 	end
-	wire count, position, w1;
-	// fill blank
+	
+	// output filled
 	always@(posedge clk) begin
-		
 		if (fill) begin
 			if (count != 0) begin
 				count <= count -1;
 				filled <= 1'b0;
-				fillblank f0(.position(position), .qout(w1).char(char),.clk(clk), .resetn(resetn)// read
-	input ld, // write(shift register)
-	output match, filled,
-	output [15:0] qout;);
 			end
-			else  begin
-				filled <= 1'b1;
-				end
+		else  begin
+			filled <= 1'b1;
+			end
 	end
 	// draw parts/endgame and register scores
 	reg [2:0] part;
@@ -169,7 +176,6 @@ module datapath(
 				p1score <= p1score + 1;
 			end
 			else if (draw) begin
-				drawparts d0(.part(part), .out(qout));
 				part <= part + 1;
 				complete <= 1'b0;
 			end
@@ -177,7 +183,7 @@ module datapath(
 	end
 	end
 	// determine whether to continue or end game; win-lose state
-
+	
 	always@(posedge clk, negedge resetn) begin
 		if (resetn) begin
 			continue <= 1'b0;
