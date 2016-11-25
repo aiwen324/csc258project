@@ -1,26 +1,38 @@
-module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char, guess);
-	input clk, resetn, ld, compare, fill, wren, rden, writeorread;
+module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess);
+	input clk, resetn, ld, compare, fill, wren, rden;
 	input [4:0] char;
 	input [4:0] guess;
+	input ld_g;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress;
 	reg [4:0] guesschar;
-	
+	reg dash;
+	reg [4:0] inputs;
+	reg [4:0] word;
+	reg [4:0] length;
+	reg [4:0] count;
+	reg [4:0] wraddress2;
+	reg [4:0] wraddress1;
+	reg [4:0] position;
+	reg match;
+	reg filled;
+	reg qout;
+	reg [4:0] remain;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			dash <= 1'b0; // dash is the underscore below every char
 		end
-		else if (writeorread == 1) begin
-			dualportram d0(.clock(clk), .data(inputs), .rdaddress(rdaddress), 
-			.rden(rden), .wraddress(wraddress), .wren(wren), .q(word));
+		else if (ld == 1) begin
 			// rden is the signal to enable read
 			// wren is the signal to enable write
 			dash <= 1'b1;
 			end
 	end
 	
+	dualportram d0(.clock(clk), .data(inputs), .rdaddress(rdaddress), 
+			.rden(rden), .wraddress(wraddress), .wren(wren), .q(word));
+	fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(word), .char(guess), .qout(qout));
 	
-	reg [4:0] inputs;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			inputs <= 0;
@@ -33,13 +45,13 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 		end
 	end
 	
-	
-	reg [4:0] wraddress1;	// This also can be treated as the length of the words
+		// This also can be treated as the length of the words
 							// since we write the chars to memory start from 1
-	always @ (posedge ld, posedge resetn)
+	always @ (posedge ld, negedge resetn)
 		begin
-			if (resetn == 1'b1) begin
+			if (resetn == 1'b0) begin
 				wraddress1 <= 5'd0;
+			end
 			else begin
 				wraddress1 <= wraddress1 + 1; // wordlength
 			end
@@ -65,10 +77,10 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 		end
 		else if (fill == 1'b1) begin
 				rdaddress <= wraddress2 + count;
+		end
 	end
 	
 	
-	reg [4:0] position;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			guesschar <= 5'b0;
@@ -96,8 +108,7 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 		else if (fill) begin
 			if (count != 0) begin
 				count <= count -1;
-				filled <= 1'b0;
-				fillblank f1(.resetn(resetn), .clk(clk), .fill(fill), .position(word), .char(guess), .qout(qout)); 
+				filled <= 1'b0; 
 			end
 //fill blank
 			else begin
@@ -105,18 +116,17 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 			filled <= 1'b1;
 			end
 		end
-		
 	end
 
 	
-	reg [4:0] length;
-	always @(clk) begin
-		if (ld_g = 1'b1) begin
+	always @(posedge clk) begin
+		if (ld_g == 1'b1) begin
 			length <= wraddress1;
 			remain <= length;
 		end
 		else if(loopend == 1'b1) begin
 			remain <= remain - count;
+		end
 	end
 		
 	
@@ -129,3 +139,4 @@ module memorypart(clk, resetn, ld, compare, fill, wren, rden, writeorread, char,
 			wraddress = wraddress2;
 		end
 	end
+endmodule
