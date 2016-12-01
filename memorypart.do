@@ -27,16 +27,17 @@ force {resetn} 1 0, 0 3
 force {ld} 1 0, 0 7, 1 11, 0 15, 1 19, 0 23
 #force {writeorread} 1 0, 0 6, 1 8, 0 10, 1 12, 0 14, 1 22, 0 56
 # S_LOAD_GRAPH 14, S_WAIT_GRAPH 16, S_LOAD_G 22
-force {wren} 1 0, 0 7, 1 11, 0 15, 1 19, 0 23, 1 31, 0 34, 1 44, 0 56
+force {wren} 1 0, 0 7, 1 11, 0 15, 1 19, 0 23, 1 35, 0 56
 # wren 
 force {ld_g} 0 0, 1 23, 0 27
-force {rden} 0 0, 1 31
+force {rden} 0 0, 1 35
 # rden 
-force {compare} 0 0, 1 31, 0 38, 1 44, 0 56
-force {fill} 0 0, 1 34, 1 56
-force {char} 5'b00001 0, 5'b00011 12, 5'b00010 20
+force {loadguessvalue} 0 0, 1 31, 0 35
+force {compare} 0 0, 1 35, 0 49, 1 55, 0 56
+force {fill} 0 0, 1 60, 1 76
+force {char} 5'b00001 0, 5'b00001 12, 5'b00010 20
 #5'b00001 11, 5'b00001 13, 5'b00001 15
-force {guess} 5'b00001 20, 5'b00010 36
+force {guess} 5'b00001 31, 5'b00010 50
 run 100ps
 
 

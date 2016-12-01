@@ -1,11 +1,10 @@
-module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess, loadguessvalue
+module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess, loadguessvalue,
 					filled, remain);
-					
-	input clk, resetn, ld, compare, fill, wren, rden;
+	input clk, resetn, ld;
+	input ld_g;
+	input loadguessvalue, compare, fill, wren, rden;
 	input [4:0] char;
 	input [4:0] guess;
-	input ld_g;
-	input loadguessvalue;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress; // The write address we will write to memory
 	reg [4:0] guesschar; // The guesser's guess char
@@ -93,6 +92,7 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		else if (loadguessvalue) begin
 			guesschar <= guess;
 		end
+	end
 	
 	
 	
@@ -105,12 +105,12 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		end
 		else if (compare == 1'b1) begin
 			match <= 1'b0;
-			//guesschar <= guess; // These 2 lines will be implemented in the same cycle, so we decide to 
+			//guesschar <= guess These 2 lines will be implemented in the same cycle, so we decide to 
 			if (guesschar == word) begin // change the start of rdaddress to 0 instead of 1
 				count <= count + 1;
 				position <= rdaddress;
-			end
 				wraddress2 <= wraddress2 - 5'b00001; 
+			end
 			if (loopend == 1'b1) begin
 					if (count != 0) begin
 						match <= 1'b1;
