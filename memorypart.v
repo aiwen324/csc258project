@@ -62,23 +62,37 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	// This block changes the rdaddress
 	// 1. in the compare it will read from 1 to the length of the word
 	// 2. in the fill part it will be wraddress2 + count which is the memory address we have for position
+	reg [4:0] rdaddress2;
 	always @ (posedge clk) begin
 		if (resetn) begin
-			rdaddress <= 5'b0;
+			rdaddress2 <= 5'b0;
 			loopend <= 1'b0;
 		end
 		else if (compare == 1'b1) begin
-			if (rdaddress >= length) begin
-				rdaddress <= 5'b00000;
+			if (rdaddress2 >= length) begin
+				rdaddress2 <= 5'b00000;
 				loopend <= 1'b1;
 			end
 			else begin
-				rdaddress <= rdaddress + 1;
+				rdaddress2 <= rdaddress + 1;
 				loopend <= 1'b0;
 			end
 		end
 		else if (fill == 1'b1) begin
-				rdaddress <= wraddress2 + count;
+				rdaddress2 <= wraddress2 + count;
+		end
+	end
+	
+	
+	always @ (*) begin
+		if (resetn) begin
+			rdaddress <= 5'b0;
+		end
+		else if (compare || fill) begin
+			rdaddress <= rdaddress2;
+		end
+		else begin
+			rdaddress <= wraddress1;
 		end
 	end
 	
