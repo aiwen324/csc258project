@@ -76,11 +76,13 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	// This block changes the rdaddress
 	// 1. in the compare it will read from 1 to the length of the word
 	// 2. in the fill part it will be wraddress2 + count which is the memory address we have for position
+	reg flag;
 	reg [4:0] rdaddress2;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			rdaddress2 <= 5'b00001;
 			loopend <= 1'b0;
+			
 		end
 		if (loadguessvalue) begin
 			rdaddress2 <= 5'b00001;
@@ -92,12 +94,26 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 				loopend <= 1'b1;
 			end
 			else begin
-				rdaddress2 <= rdaddress + 1;
+				rdaddress2 <= rdaddress2 + 1;
 				loopend <= 1'b0;
 			end
 		end
 		else if (fill == 1'b1) begin
+			if (count > 0) begin
 				rdaddress2 <= wraddress2 + count;
+			end
+		end
+	end
+	
+	always @(posedge clk) begin
+		if (resetn) begin
+			flag <= 1'b0;
+		end
+		else if (loadguessvalue) begin
+			flag <= 1'b0;
+		end
+		else if (loopend) begin
+			flag <= 1'b1;
 		end
 	end
 	
@@ -138,7 +154,7 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		else if (compare == 1'b1) begin
 			match <= 1'b0;
 			//guesschar <= guess These 2 lines will be implemented in the same cycle, so we decide to 
-			if (guesschar == word) begin // change the start of rdaddress to 0 instead of 1
+			if (guesschar == word && flag != 1) begin // change the start of rdaddress to 0 instead of 1
 				count <= count + 1;
 				position <= rdaddress;
 				wraddress2 <= wraddress2 - 5'b00001; 
