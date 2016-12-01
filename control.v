@@ -4,6 +4,7 @@ module control(
 	input load, endinput, start, wipe, try // from keyboard
 	input timeout, finish, complete, continuous, graph_loaded, match,// from datapath
 	output reg writeorread, timecount, compare, fill, draw, over, ld_g, wren // to datapath
+	output reg loadguessvalue,
 	output reg plot, // writeEn to vga to change color
 	output reg[3:0] part, p2score, p1score
 	);
@@ -75,10 +76,11 @@ module control(
 		wren = 1'b0;
 		plot = 1'b0;
 		ld = 1'b0;
+		loadguessvalue;
 
 		case(current_state)
 			S_LOAD_C: begin
-				writeorread = 1'b1; 
+				//writeorread = 1'b1; 
 				wren = 1'b1;
 				ld = 1'b1; 
 				plot = 1'b1;
@@ -91,9 +93,12 @@ module control(
 				timecount = 1'b1;
 			end
 			S_LOAD_G: begin
+				loadguessvalue = 1'b1;
+			end
+			S_LOAD_G_WAIT: begin
 				compare = 1'b1;
 				timecount = 1'b1;
-				writeorread = 1'b1;
+				//writeorread = 1'b1;
 				wren = 1'b1;
 				rden = 1'b1;
 			end
@@ -101,7 +106,7 @@ module control(
 				fill = 1'b1;
 				timecount = 1'b1;
 				plot = 1'b1;
-				writeorread = 1'b1;
+				//writeorread = 1'b1;
 				rden = 1'b1;
 			end
 		  	S_DRAW: begin
