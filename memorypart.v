@@ -55,6 +55,9 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 			inputs = position - 5'b00010;
 			end
 		end
+		else if (over) begin
+			inputs = 0;
+		end
 	end
 	
 	// This block change the wraddress1 
@@ -206,7 +209,24 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 				wraddress = wraddress2 + 1;
 			end
 		end
+		else if (over) begin
+			wraddress <= wraddress3;
+		end
 	end
+	
+	reg [4:0] wraddress3;
+	always @ (posedge clk)
+		begin
+			if (resetn) begin
+				wraddress3 <= 0;
+			end
+			else if (wraddress3 == 5'b11111) begin
+				wraddress3 <= 0;
+			end
+			else begin
+				wraddress3 <= wraddress3 + 1;
+			end
+		end
 endmodule
 // megafunction wizard: %RAM: 2-PORT%
 // GENERATION: STANDARD
