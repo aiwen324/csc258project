@@ -36,7 +36,7 @@ force {rden} 1
 force {loadguessvalue} 0 0, 1 31, 0 35
 force {compare} 0 0, 1 35, 0 56
 force {fill} 0 0, 1 60, 1 76
-force {char} 5'b00001 0, 5'b00011 12, 5'b00010 20
+force {char} 5'b00001 0, 5'b00001 12, 5'b00010 20
 #5'b00001 11, 5'b00001 13, 5'b00001 15
 force {guess} 5'b00001 31
 run 100ps

@@ -20,6 +20,9 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	output reg filled; // The signal to tell the blank need to fill has been filled and goes to the next status
 	output reg [4:0] remain; // The output signal we have on how much chars left the guesser doesn't guess correctly
 	reg loopend; // The signal to tell the end of loop when we find the same chars as guesser's input
+	// TODO: Change the loopend timing, let threshold be len + 2 or 1 or something
+	// TODO: Change the position value, let it minus 1 or minus 2
+	// TODO: Don't forget to merge the fucking file
 	
 	dualportram d0(.clock(clk), .data(inputs), .rdaddress(rdaddress), 
 			.rden(rden), .wraddress(wraddress), .wren(wren), .q(word));
@@ -65,12 +68,16 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	reg [4:0] rdaddress2;
 	always @ (posedge clk) begin
 		if (resetn) begin
-			rdaddress2 <= 5'b0;
+			rdaddress2 <= 5'b00001;
+			loopend <= 1'b0;
+		end
+		if (loadguessvalue) begin
+			rdaddress2 <= 5'b00001;
 			loopend <= 1'b0;
 		end
 		else if (compare == 1'b1) begin
 			if (rdaddress2 >= length) begin
-				rdaddress2 <= 5'b00000;
+				rdaddress2 <= 5'b00001;
 				loopend <= 1'b1;
 			end
 			else begin
