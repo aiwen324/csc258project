@@ -39,6 +39,7 @@ force {fill} 0 0, 1 59, 1 76
 force {char} 5'b00001 0, 5'b00001 12, 5'b00010 20
 #5'b00001 11, 5'b00001 13, 5'b00001 15
 force {guess} 5'b00001 31
+force {over} 0 0, 1 90
 run 100ps
 
 

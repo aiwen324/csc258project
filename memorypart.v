@@ -1,10 +1,11 @@
 module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess, loadguessvalue,
-					filled, remain);
+					filled, over, remain);
 	input clk, resetn, ld;
 	input ld_g;
 	input loadguessvalue, compare, fill, wren, rden;
 	input [4:0] char;
 	input [4:0] guess;
+	input [4:0] over;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress; // The write address we will write to memory
 	reg [4:0] guesschar; // The guesser's guess char
@@ -186,17 +187,30 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 
 	// This block let the length be given value as wraddress1
 	always @(posedge clk) begin
-		if (ld_g == 1'b1) begin
+		if (resetn) begin
+			length <= 0;
+			remain <= 0;
+		end
+		else if (ld_g == 1'b1) begin
 			length <= wraddress1;
-			remain <= length;
+			remain <= wraddress1;
 		end
 		else if(loopend == 1'b1) begin
 			remain <= remain - count;
 		end
 	end
+	
+	always @ (*) begin
+		if (resetn) begin
+			remain = 0;
+		end
+		else if (ld_g == 1'b1) begin
+			remain = wraddress1;
+		end
+		else if (loopend == 
 		
 	
-	
+	reg [4:0] wraddress3;
 	always @(*) begin
 		if (ld) begin
 			wraddress = wraddress1;
@@ -214,7 +228,7 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		end
 	end
 	
-	reg [4:0] wraddress3;
+	
 	always @ (posedge clk)
 		begin
 			if (resetn) begin
