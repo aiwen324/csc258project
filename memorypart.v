@@ -36,13 +36,24 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	//always @ (posedge clk) begin
 	always @ (*) begin
 		if (resetn) begin
-			inputs <= 0;
+			inputs = 0;
 		end
 		else if (ld) begin
-			inputs <= char;
+			inputs = char;
 		end
 		else if (compare) begin
-			inputs <= position;
+			if (position == 5'b00001) begin
+				inputs = length - 5'b00001;
+			end
+			else if (position == 5'b00010) begin
+				inputs = length;
+			end
+			else if (position == 0) begin
+				inputs = 0;
+			end
+			else begin
+			inputs = position - 5'b00010;
+			end
 		end
 	end
 	
@@ -93,13 +104,13 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	
 	always @ (*) begin
 		if (resetn) begin
-			rdaddress <= 5'b0;
+			rdaddress = 5'b0;
 		end
 		else if (compare || fill) begin
-			rdaddress <= rdaddress2;
+			rdaddress = rdaddress2;
 		end
 		else begin
-			rdaddress <= wraddress1;
+			rdaddress = wraddress1;
 		end
 	end
 	
@@ -108,10 +119,10 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	// value of rdaddress to 1 instead 0, since looks like we won't miss a loop
 	always @ (*) begin
 		if (resetn) begin
-			guesschar <= 0;
+			guesschar = 0;
 		end
 		else if (loadguessvalue) begin
-			guesschar <= guess;
+			guesschar = guess;
 		end
 	end
 	
@@ -171,8 +182,13 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		if (ld) begin
 			wraddress = wraddress1;
 		end
+		else if (loadguessvalue) begin
+			wraddress = 0;
+		end
 		else if (compare) begin
-			wraddress = wraddress2;
+			if (wraddress2 < 5'b11111) begin
+				wraddress = wraddress2 + 1;
+			end
 		end
 	end
 endmodule
