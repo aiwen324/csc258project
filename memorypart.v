@@ -155,12 +155,36 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	end
 
 	// This block let the length be given value as wraddress1
-	always @(posedge clk) begin
+	/*always @(posedge clk) begin
 		if (ld_g == 1'b1) begin
 			length <= wraddress1;
 			remain <= length;
 		end
 		else if(loopend == 1'b1) begin
+			remain <= remain - count;
+		end
+	end*/
+	
+	reg remainenb;
+	always @(*) begin
+		if (!resetn) begin
+			remainenb = 0;
+		end
+		else if (loopend) begin
+			remainenb = 1;
+		end
+		else begin
+			remainenb = 0;
+		end
+	end
+  
+	// This block let the length be given value as wraddress1
+	always @(posedge remainenb, posedge ld) begin
+		if (ld == 1'b1) begin
+			length <= wraddress1 + 5'b00001;
+			remain <= wraddress1 + 5'b00001;
+		end
+		else if(loopend == 1'b1 && remain != 0) begin
 			remain <= remain - count;
 		end
 	end
