@@ -1,37 +1,53 @@
 module displaytime(clk, reset_n, out, fail);
 	input clk, reset_n;
-	output [0:6] out;
+	output [3:0] outh, outm, outs;
 	output fail;
 	wire enb;
 	RateDivider R0(.enb(enb), .clk(clk), .reset_n(reset_n));
-	timecounter t0(.clk(clk), .reset_n(reset_n), .enb(enb), .out(out), .fail(fail);
+	timecounter t0(.clk(clk), .reset_n(reset_n), .enb(enb), .outs(outs), .outm(outm), .outh(outh), .fail(fail);
 
 
-module timecounter(clk, reset_n, enb, out, fail);
+module timecounter(clk, reset_n, enb, outm, outs, outh, fail);
 	input clk;
 	input reset_n;
 	input enb;
-	output reg [0:6]out;
+	output reg [3:0]outm, outs, outh;
 	output reg fail
-	
-	always @(posedge clk)
-		if (reset_n == 0)
-			begin
-				out <= 6'd59;
-				fail <= 1'b0;
-			end
-		else if (out = 1'b0)
-			begin
-				fail = 1'b1;
-				out <= 6'd59;
-			end
-		else if((enb == 1)
-			begin
-				out = out - 1'b1;
-				fail = 1'b0;
-			end
 
-
+	always@(posedge enb,posedge clk) begin
+    	if(reset) begin
+        		outm<=0;
+        		outs<=0;
+        		fail <= 0;
+    	end
+		else if (enb) begin
+            if (outm == 4'd0 && outs == 4'd0 && outh != 4'd0) begin // 100, 200, 300, 400, 500
+           		fail <= 1'b0;
+           		outh <= outh -1;
+            	outm <= 4'd5;
+            	outs <= 4'd9; // 459, 359, 259, 159, 059;
+           	end
+           	else if(outs!=4'd0)
+            begin
+                outs<=outs-1; // 9876543210
+                fail <= 1'b0;
+            end
+            else if(outs==4'd0 && outm != 4'd0) begin
+                outs<=9; 		
+                outm<=outm-1; //59,49,39,29,19, 09
+                fail <= 1'b0;
+            end
+           	else if (outm == 4'd0 && outs == 4'd0 && outh == 4'd0) begin
+           		fail <= 1'b1;
+           	end
+    	else begin
+    		(outh != 4'd5) 
+    			outm <= 4'd0;
+    			outs <= 4'd0;
+    			fail <= 1'b0;
+    		end
+    	end
+	end
 
 
 module RateDivider(enb, clk, reset_n);
@@ -43,7 +59,7 @@ module RateDivider(enb, clk, reset_n);
 	
 	always @(*)
 		begin
-		count = ‭0010111110101111000001111111‬;
+		count = ‭26‘b10111110101111000001111111‬;
 		end
 	reg q
 	always@(posedge CLOCK_50)
