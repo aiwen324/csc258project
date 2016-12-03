@@ -1,10 +1,11 @@
 module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess, loadguessvalue,
-					filled, remain);
+					filled, over, remain);
 	input clk, resetn, ld;
 	input ld_g;
 	input loadguessvalue, compare, fill, wren, rden;
 	input [4:0] char;
 	input [4:0] guess;
+	input [4:0] over;
 	reg [4:0] rdaddress; // The address we will read from
 	reg [4:0] wraddress; // The write address we will write to memory
 	reg [4:0] guesschar; // The guesser's guess char
@@ -36,13 +37,27 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	//always @ (posedge clk) begin
 	always @ (*) begin
 		if (resetn) begin
-			inputs <= 0;
+			inputs = 0;
 		end
 		else if (ld) begin
-			inputs <= char;
+			inputs = char;
 		end
 		else if (compare) begin
-			inputs <= position;
+			if (position == 5'b00001) begin
+				inputs = length - 5'b00001;
+			end
+			else if (position == 5'b00010) begin
+				inputs = length;
+			end
+			else if (position == 0) begin
+				inputs = 0;
+			end
+			else begin
+			inputs = position - 5'b00010;
+			end
+		end
+		else if (over) begin
+			inputs = 0;
 		end
 	end
 	
@@ -65,11 +80,13 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	// This block changes the rdaddress
 	// 1. in the compare it will read from 1 to the length of the word
 	// 2. in the fill part it will be wraddress2 + count which is the memory address we have for position
+	reg flag;
 	reg [4:0] rdaddress2;
 	always @ (posedge clk) begin
 		if (resetn) begin
 			rdaddress2 <= 5'b00001;
 			loopend <= 1'b0;
+			
 		end
 		if (loadguessvalue) begin
 			rdaddress2 <= 5'b00001;
@@ -81,25 +98,43 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 				loopend <= 1'b1;
 			end
 			else begin
-				rdaddress2 <= rdaddress + 1;
+				rdaddress2 <= rdaddress2 + 1;
 				loopend <= 1'b0;
 			end
 		end
 		else if (fill == 1'b1) begin
+			if (count > 0) begin
 				rdaddress2 <= wraddress2 + count;
+			end
+			loopend <= 1'b0;
+		end
+	end
+	
+	always @(posedge clk) begin
+		if (resetn) begin
+			flag <= 1'b0;
+		end
+		else if (loadguessvalue) begin
+			flag <= 1'b0;
+		end
+		else if (fill) begin
+			flag <= 1'b0;
+		end
+		else if (loopend) begin
+			flag <= 1'b1;
 		end
 	end
 	
 	
 	always @ (*) begin
 		if (resetn) begin
-			rdaddress <= 5'b0;
+			rdaddress = 5'b0;
 		end
 		else if (compare || fill) begin
-			rdaddress <= rdaddress2;
+			rdaddress = rdaddress2;
 		end
 		else begin
-			rdaddress <= wraddress1;
+			rdaddress = wraddress1;
 		end
 	end
 	
@@ -108,10 +143,10 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	// value of rdaddress to 1 instead 0, since looks like we won't miss a loop
 	always @ (*) begin
 		if (resetn) begin
-			guesschar <= 0;
+			guesschar = 0;
 		end
 		else if (loadguessvalue) begin
-			guesschar <= guess;
+			guesschar = guess;
 		end
 	end
 	
@@ -127,7 +162,7 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 		else if (compare == 1'b1) begin
 			match <= 1'b0;
 			//guesschar <= guess These 2 lines will be implemented in the same cycle, so we decide to 
-			if (guesschar == word) begin // change the start of rdaddress to 0 instead of 1
+			if (guesschar == word && flag != 1) begin // change the start of rdaddress to 0 instead of 1
 				count <= count + 1;
 				position <= rdaddress;
 				wraddress2 <= wraddress2 - 5'b00001; 
@@ -155,50 +190,59 @@ module memorypart(clk, resetn, ld, compare, ld_g, fill, wren, rden, char, guess,
 	end
 
 	// This block let the length be given value as wraddress1
-	/*always @(posedge clk) begin
-		if (ld_g == 1'b1) begin
+	always @(posedge clk) begin
+		if (resetn) begin
+			length <= 0;
+		end
+		else if (ld_g == 1'b1) begin
 			length <= wraddress1;
-			remain <= length;
-		end
-		else if(loopend == 1'b1) begin
-			remain <= remain - count;
-		end
-	end*/
-	
-	reg remainenb;
-	always @(*) begin
-		if (!resetn) begin
-			remainenb = 0;
-		end
-		else if (loopend) begin
-			remainenb = 1;
-		end
-		else begin
-			remainenb = 0;
 		end
 	end
-  
-	// This block let the length be given value as wraddress1
-	always @(posedge remainenb, posedge ld) begin
-		if (ld == 1'b1) begin
-			length <= wraddress1 + 5'b00001;
-			remain <= wraddress1 + 5'b00001;
+	
+	always @ (*) begin
+		if (resetn) begin
+			remain = 0;
 		end
-		else if(loopend == 1'b1 && remain != 0) begin
-			remain <= remain - count;
+		else if (ld_g == 1'b1) begin
+			remain = wraddress1;
+		end
+		else if (flag == 1) begin
+			remain = remain - count;
 		end
 	end
 		
 	
-	
+	reg [4:0] wraddress3;
 	always @(*) begin
 		if (ld) begin
 			wraddress = wraddress1;
 		end
+		else if (loadguessvalue) begin
+			wraddress = 0;
+		end
 		else if (compare) begin
-			wraddress = wraddress2;
+			if (wraddress2 < 5'b11111) begin
+				wraddress = wraddress2 + 1;
+			end
+		end
+		else if (over) begin
+			wraddress <= wraddress3;
 		end
 	end
+	
+	
+	always @ (posedge clk)
+		begin
+			if (resetn) begin
+				wraddress3 <= 0;
+			end
+			else if (wraddress3 == 5'b11111) begin
+				wraddress3 <= 0;
+			end
+			else begin
+				wraddress3 <= wraddress3 + 1;
+			end
+		end
 endmodule
 // megafunction wizard: %RAM: 2-PORT%
 // GENERATION: STANDARD
